@@ -1,0 +1,62 @@
+<!doctype html>
+<html lang="id">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="claude:viewport-fit-sides" content="cover">
+<title>Kode Morse · Test Work</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@500;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="styles.css">
+</head>
+<body>
+<div class="wrap">
+  <header class="top"><a class="brand" href="index.html">Test<span>Work</span></a></header>
+  <h1>Kode Morse</h1>
+  <p class="lead">Ketik teks untuk diubah menjadi kode Morse, atau tempel kode Morse untuk diubah kembali. Pisahkan kode dengan spasi, dan pisahkan kata dengan ` / `.</p>
+
+  <div class="panel">
+    <label for="txt">Teks</label>
+    <textarea id="txt" placeholder="Contoh: SOS HALO"></textarea>
+    <div class="row" style="margin-top:12px">
+      <button id="enc">Ubah ke Morse</button>
+      <button class="ghost" id="dec">Ubah dari Morse</button>
+    </div>
+  </div>
+
+  <div class="panel">
+    <label>Hasil</label>
+    <div class="out" id="out" aria-live="polite"></div>
+    <p class="muted" id="err"></p>
+  </div>
+</div>
+<script>
+const CODE = {
+  A:'.-',B:'-...',C:'-.-.',D:'-..',E:'.',F:'..-.',G:'--.',H:'....',I:'..',J:'.---',K:'-.-',L:'.-..',M:'--',
+  N:'-.',O:'---',P:'.--.',Q:'--.-',R:'.-.',S:'...',T:'-',U:'..-',V:'...-',W:'.--',X:'-..-',Y:'-.--',Z:'--..',
+  '0':'-----','1':'.----','2':'..---','3':'...--','4':'....-','5':'.....','6':'-....','7':'--...','8':'---..','9':'----.',
+  '.':'.-.-.-',',':'--..--','?':'..--..',"'":'.----.','!':'-.-.--','/':'-..-.','(':'-.--.',')':'-.--.-','&':'.-...',
+  ':':'---...',';':'-.-.-.','=':'-...-','+':'.-.-.','-':'-....-','_':'..--.-','"':'.-..-.','$':'...-..-','@':'.--.-.'
+};
+const REV = Object.fromEntries(Object.entries(CODE).map(([k, v]) => [v, k]));
+const $ = id => document.getElementById(id);
+
+function encode(s) {
+  return s.toUpperCase().split(/\s+/).filter(Boolean)
+    .map(word => [...word].map(c => CODE[c] || '?').join(' ')).join(' / ');
+}
+function decode(s) {
+  return s.trim().split(/\s*\/\s*/).map(word =>
+    word.split(/\s+/).filter(Boolean).map(code => REV[code] || '?').join('')
+  ).join(' ');
+}
+function show(text) {
+  $('out').textContent = text;
+  $('err').textContent = text.includes('?') ? 'Ada karakter yang tidak dikenal, ditandai dengan ?.' : '';
+}
+$('enc').addEventListener('click', () => show(encode($('txt').value)));
+$('dec').addEventListener('click', () => show(decode($('txt').value)));
+</script>
+</body>
+</html>

@@ -1,0 +1,89 @@
+<!doctype html>
+<html lang='id'>
+<head>
+<meta charset='utf-8'>
+<meta name='viewport' content='width=device-width,initial-scale=1,viewport-fit=cover'>
+<meta name='claude:viewport-fit-sides' content='cover'>
+<title>Kurs Mata Uang · Test Work</title>
+<link rel='preconnect' href='https://fonts.googleapis.com'>
+<link rel='preconnect' href='https://fonts.gstatic.com' crossorigin>
+<link href='https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@500;700;800&display=swap' rel='stylesheet'>
+<link rel='stylesheet' href='styles.css'>
+</head>
+<body>
+<div class='wrap'>
+  <header class='top'><a class='brand' href='index.html'>Test<span>Work</span></a></header>
+  <h1>Kurs mata uang</h1>
+  <p class='lead'>Kurs dari currency-api (proyek terbuka, gratis, tanpa key). Data diperbarui kira-kira sehari sekali.</p>
+
+  <div class='panel'>
+    <label for='amt'>Jumlah</label>
+    <input id='amt' type='number' value='1' min='0' step='any'>
+    <div class='row' style='margin-top:8px'>
+      <div style='flex:1 1 160px'>
+        <label for='from'>Dari</label>
+        <select id='from'></select>
+      </div>
+      <div style='flex:1 1 160px'>
+        <label for='to'>Ke</label>
+        <select id='to'></select>
+      </div>
+    </div>
+    <p id='res' style='font-size:22px;font-weight:800;margin:16px 0 4px'></p>
+    <p class='muted' id='st'>Memuat daftar mata uang...</p>
+  </div>
+</div>
+<script>
+const BASE = 'https://cdn.jsdelivr.net/npm/@fawazahmed0/currency-api@latest/v1';
+const $ = id => document.getElementById(id);
+const cache = {};
+
+async function rates(code) {
+  if (!cache[code]) {
+    const r = await fetch(`${BASE}/currencies/${code}.json`);
+    if (!r.ok) throw new Error('HTTP ' + r.status);
+    cache[code] = await r.json();
+  }
+  return cache[code];
+}
+
+async function init() {
+  try {
+    const r = await fetch(`${BASE}/currencies.json`);
+    if (!r.ok) throw new Error('HTTP ' + r.status);
+    const names = await r.json();
+    const opts = Object.entries(names).sort((a, b) => a[0].localeCompare(b[0]))
+      .map(([c, n]) => `<option value='${c}'>${c.toUpperCase()} · ${n}</option>`).join('');
+    $('from').innerHTML = opts;
+    $('to').innerHTML = opts;
+    $('from').value = 'usd';
+    $('to').value = 'idr';
+    $('st').textContent = '';
+    convert();
+  } catch (e) {
+    $('st').textContent = 'Gagal memuat daftar mata uang: ' + e.message;
+  }
+}
+
+async function convert() {
+  const amt = +$('amt').value, f = $('from').value, t = $('to').value;
+  if (!f || !t) return;
+  $('st').textContent = 'Mengambil kurs...';
+  try {
+    const d = await rates(f);
+    const rate = d[f] && d[f][t];
+    if (!rate) { $('res').textContent = ''; $('st').textContent = 'Kurs untuk pasangan ini tidak tersedia.'; return; }
+    $('res').textContent = (amt * rate).toLocaleString('id-ID', { maximumFractionDigits: 4 }) + ' ' + t.toUpperCase();
+    $('st').textContent = '1 ' + f.toUpperCase() + ' = ' + rate.toLocaleString('id-ID', { maximumFractionDigits: 6 }) + ' ' + t.toUpperCase() + ' · data ' + d.date;
+  } catch (e) {
+    $('st').textContent = 'Gagal mengambil kurs: ' + e.message;
+  }
+}
+
+$('amt').addEventListener('input', convert);
+$('from').addEventListener('change', convert);
+$('to').addEventListener('change', convert);
+init();
+</script>
+</body>
+</html>

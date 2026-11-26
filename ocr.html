@@ -1,0 +1,71 @@
+<!doctype html>
+<html lang='id'>
+<head>
+<meta charset='utf-8'>
+<meta name='viewport' content='width=device-width,initial-scale=1,viewport-fit=cover'>
+<meta name='claude:viewport-fit-sides' content='cover'>
+<title>Baca Teks dari Gambar · Test Work</title>
+<link rel='preconnect' href='https://fonts.googleapis.com'>
+<link rel='preconnect' href='https://fonts.gstatic.com' crossorigin>
+<link href='https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@500;700;800&display=swap' rel='stylesheet'>
+<link rel='stylesheet' href='styles.css'>
+<script src='https://cdn.jsdelivr.net/npm/tesseract.js@5.1.1/dist/tesseract.min.js'></script>
+</head>
+<body>
+<div class='wrap'>
+  <header class='top'><a class='brand' href='index.html'>Test<span>Work</span></a></header>
+  <h1>Baca teks dari gambar</h1>
+  <p class='lead'>Unggah foto atau tangkapan layar. Pengenalan teks berjalan di perangkat Anda. Saat pertama kali dipakai, data bahasa diunduh dulu.</p>
+
+  <div class='panel'>
+    <label for='img'>Gambar</label>
+    <input id='img' type='file' accept='image/*'>
+    <label for='lang'>Bahasa</label>
+    <select id='lang'>
+      <option value='ind+eng'>Indonesia + Inggris</option>
+      <option value='ind'>Indonesia</option>
+      <option value='eng'>Inggris</option>
+    </select>
+    <div class='row' style='margin-top:12px'>
+      <button id='go'>Baca teks</button>
+      <span class='muted' id='st'></span>
+    </div>
+  </div>
+
+  <div class='panel'>
+    <label>Hasil</label>
+    <div class='out' id='out' aria-live='polite'></div>
+    <div class='row' style='margin-top:12px'>
+      <button class='ghost' id='copy'>Salin</button>
+    </div>
+  </div>
+</div>
+<script>
+const $ = id => document.getElementById(id);
+
+$('go').addEventListener('click', async () => {
+  const f = $('img').files[0];
+  if (!f) { $('st').textContent = 'Pilih gambar dulu.'; return; }
+  if (!window.Tesseract) { $('st').textContent = 'Mesin OCR belum termuat. Periksa koneksi internet.'; return; }
+  $('go').disabled = true;
+  try {
+    const { data } = await Tesseract.recognize(f, $('lang').value, {
+      logger: m => { if (m.status === 'recognizing text') $('st').textContent = 'Membaca... ' + Math.round(m.progress * 100) + '%'; }
+    });
+    $('out').textContent = data.text.trim() || '(tidak ada teks terdeteksi)';
+    $('st').textContent = 'Selesai.';
+  } catch (e) {
+    $('st').textContent = 'Gagal membaca gambar. Periksa koneksi internet, lalu coba lagi.';
+  } finally {
+    $('go').disabled = false;
+  }
+});
+
+$('copy').addEventListener('click', async () => {
+  try { await navigator.clipboard.writeText($('out').textContent); $('copy').textContent = 'Tersalin'; }
+  catch (e) { $('copy').textContent = 'Gagal, salin manual'; }
+  setTimeout(() => $('copy').textContent = 'Salin', 1500);
+});
+</script>
+</body>
+</html>

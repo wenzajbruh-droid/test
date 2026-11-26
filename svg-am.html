@@ -1,0 +1,381 @@
+<!doctype html>
+<html lang="id">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>SVG ke XML Alight Motion</title>
+<style>
+*{box-sizing:border-box}
+body{font-family:system-ui,-apple-system,"Segoe UI",sans-serif;margin:0;background:#f6f1e7;color:#1d2a2f;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+.wrap{max-width:820px;margin:0 auto;padding-block:24px;min-width:0}
+h1{font-size:24px;margin:6px 0 4px}
+.panel{background:#fff;border:1px solid #e2d9c8;border-radius:14px;padding:16px;margin-bottom:14px;min-width:0}
+label{display:block;font-weight:600;font-size:14px;margin:12px 0 6px}
+input[type=file],input[type=number],select{width:100%;padding:9px;border:1px solid #e2d9c8;border-radius:10px;font:inherit;background:#fff;color:#1d2a2f}
+button{font:inherit;font-weight:700;background:#1f7a6d;color:#fff;border:0;border-radius:10px;padding:10px 14px;cursor:pointer;margin:12px 8px 0 0}
+button:disabled{opacity:.5;cursor:default}
+button.ghost{background:transparent;color:#1d2a2f;border:1px solid #e2d9c8}
+.muted{color:#5f6b70;font-size:13px}
+.out{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:12px;background:#fbf8f1;border:1px dashed #e2d9c8;border-radius:10px;padding:10px;max-height:220px;overflow:auto;white-space:pre-wrap;word-break:break-all}
+.row2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+@media (max-width:520px){.row2{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>SVG ke XML Alight Motion</h1>
+  <p class="muted">Unggah file SVG, pilih rasio dan lebar, lalu unduh XML scene. Untuk melihat hasilnya sebagai gambar, buka menu Render XML Alight Motion. Untuk JPG atau PNG, buka menu JPG/PNG ke SVG dulu.</p>
+
+  <div class="panel">
+    <label for="file">File SVG</label>
+    <input id="file" type="file" accept=".svg,image/svg+xml">
+
+    <div class="row2">
+      <div>
+        <label for="rasio">Rasio</label>
+        <select id="rasio">
+          <option value="asli">Ikuti SVG</option>
+          <option value="1:1" selected>1:1 (persegi)</option>
+          <option value="4:5">4:5 (portrait)</option>
+          <option value="3:4">3:4</option>
+          <option value="9:16">9:16 (vertikal)</option>
+          <option value="16:9">16:9 (landscape)</option>
+        </select>
+      </div>
+      <div>
+        <label for="lebar">Lebar (px)</label>
+        <input id="lebar" type="number" value="1080" min="64" max="4096" step="2">
+      </div>
+    </div>
+
+    <label for="dur">Durasi scene (detik)</label>
+    <input id="dur" type="number" value="5" min="1" max="60" step="0.5">
+
+    <div>
+      <button id="go">Proses</button>
+      <button id="dlxml" disabled>Unduh XML</button>
+    </div>
+    <p class="muted" id="st"></p>
+  </div>
+
+  <div class="panel">
+    <label>Isi XML</label>
+    <div class="out" id="xmlout">Belum ada hasil.</div>
+  </div>
+</div>
+<script>
+const $ = id => document.getElementById(id);
+let parsed = null, xmlText = null, baseName = 'gambar';
+
+function esc(s) { return String(s).replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c])); }
+
+// Ubah warna CSS/hex ke format pemutar: #AARRGGBB (huruf besar)
+function toArgb(c, alphaOverride) {
+  if (!c || c === 'none') return null;
+  c = c.trim();
+  let r, g, b, a = 255;
+  if (c[0] === '#') {
+    let h = c.slice(1);
+    if (h.length === 3) h = h.split('').map(x => x + x).join('');
+    if (h.length === 8) { a = parseInt(h.slice(6, 8), 16); h = h.slice(0, 6); }
+    r = parseInt(h.slice(0, 2), 16); g = parseInt(h.slice(2, 4), 16); b = parseInt(h.slice(4, 6), 16);
+  } else {
+    const m = c.match(/rgba?\(\s*([\d.]+)[ ,]+([\d.]+)[ ,]+([\d.]+)(?:[ ,\/]+([\d.]+))?/);
+    if (!m) return null;
+    r = +m[1]; g = +m[2]; b = +m[3];
+    if (m[4] !== undefined) a = Math.round(+m[4] * 255);
+  }
+  if (alphaOverride !== undefined) a = Math.round(alphaOverride * 255);
+  return '#' + [a, r, g, b].map(v => Math.max(0, Math.min(255, Math.round(v))).toString(16).padStart(2, '0')).join('').toUpperCase();
+}
+
+// Baca SVG: ambil bentuk (path, rect, circle, ellipse, polygon, polyline) beserta warna isi
+function shapesFromSvg(svgStr) {
+  const doc = new DOMParser().parseFromString(svgStr, 'image/svg+xml');
+  if (doc.querySelector('parsererror')) throw new Error('SVG tidak valid.');
+  const root = doc.documentElement;
+  const vb = (root.getAttribute('viewBox') || '').trim().split(/[\s,]+/).map(parseFloat);
+  const W = vb.length === 4 && vb[2] > 0 ? vb[2] : (parseFloat(root.getAttribute('width')) || 1080);
+  const H = vb.length === 4 && vb[3] > 0 ? vb[3] : (parseFloat(root.getAttribute('height')) || 1920);
+
+  const toD = el => {
+    const n = (a, d = 0) => parseFloat(el.getAttribute(a)) || d;
+    switch (el.localName) {
+      case 'path': return el.getAttribute('d');
+      case 'rect': { const x = n('x'), y = n('y'), w = n('width'), h = n('height'); return `M${x} ${y}H${x + w}V${y + h}H${x}Z`; }
+      case 'circle':
+      case 'ellipse': {
+        const cx = n('cx'), cy = n('cy');
+        const rx = el.localName === 'circle' ? n('r') : n('rx');
+        const ry = el.localName === 'circle' ? n('r') : n('ry');
+        return `M${cx - rx} ${cy}A${rx} ${ry} 0 1 0 ${cx + rx} ${cy}A${rx} ${ry} 0 1 0 ${cx - rx} ${cy}Z`;
+      }
+      case 'polygon':
+      case 'polyline': {
+        const p = (el.getAttribute('points') || '').trim().split(/[\s,]+/).map(parseFloat);
+        let d = '';
+        for (let i = 0; i + 1 < p.length; i += 2) d += (i ? 'L' : 'M') + p[i] + ' ' + p[i + 1];
+        return d + (el.localName === 'polygon' ? 'Z' : '');
+      }
+    }
+    return null;
+  };
+  // warna isi: dari atribut fill, atau dari style="fill:..."; diwarisi dari grup induk
+  const fillOf = el => {
+    for (let e = el; e && e.nodeType === 1; e = e.parentNode) {
+      const st = ((e.getAttribute && e.getAttribute('style')) || '').match(/fill\s*:\s*([^;]+)/);
+      const f = st ? st[1].trim() : (e.getAttribute && e.getAttribute('fill'));
+      if (f) return f;
+    }
+    return '#000000';
+  };
+
+  const shapes = [];
+  root.querySelectorAll('path,rect,circle,ellipse,polygon,polyline').forEach(el => {
+    const d = toD(el);
+    if (!d) return;
+    const f = fillOf(el);
+    if (f === 'none') return;
+    const alpha = parseFloat(el.getAttribute('fill-opacity'));
+    const argb = toArgb(f, Number.isNaN(alpha) ? undefined : alpha) || '#FF000000';
+    splitObjects(d).forEach(od => shapes.push({ d: od, fill: argb }));
+  });
+  return { shapes, W, H };
+}
+
+// Titik-titik (absolut) tiap subpath dari data path SVG. Mengerti M L H V C S Q T A Z, huruf besar maupun kecil.
+function subpaths(d) {
+  const tok = (d || '').match(/[a-z]|[-+]?(?:\d+\.?\d*|\.\d+)(?:e[-+]?\d+)?/gi) || [];
+  const N = { M: 2, L: 2, H: 1, V: 1, C: 6, S: 4, Q: 4, T: 2, A: 7 };
+  const subs = [];
+  let cur = null, x = 0, y = 0, sx = 0, sy = 0, cmd = '', i = 0;
+  while (i < tok.length) {
+    if (/[a-z]/i.test(tok[i])) cmd = tok[i++];
+    const C = cmd.toUpperCase(), rel = cmd !== C;
+    if (C === 'Z') { x = sx; y = sy; cur = null; if (!/[a-z]/i.test(tok[i] || '')) i++; continue; }
+    if (!N[C]) { i++; continue; }
+    if (i + N[C] > tok.length) break;
+    const a = tok.slice(i, i + N[C]).map(parseFloat); i += N[C];
+    let ex = x, ey = y;
+    if (C === 'H') ex = rel ? x + a[0] : a[0];
+    else if (C === 'V') ey = rel ? y + a[0] : a[0];
+    else { ex = a[N[C] - 2]; ey = a[N[C] - 1]; if (rel) { ex += x; ey += y; } }
+    const pts = [];
+    if (C === 'C' || C === 'S' || C === 'Q') {
+      for (let k = 0; k + 1 < N[C] - 2; k += 2) pts.push([rel ? x + a[k] : a[k], rel ? y + a[k + 1] : a[k + 1]]);
+    }
+    pts.push([ex, ey]);
+    if (C === 'M') { cur = []; subs.push(cur); sx = ex; sy = ey; cmd = rel ? 'l' : 'L'; }
+    else if (!cur) { cur = []; subs.push(cur); }
+    cur.push(...pts);
+    x = ex; y = ey;
+  }
+  return subs;
+}
+
+// Pecah satu path jadi objek terpisah, satu objek per bagian yang tidak tertutup bagian lain.
+// Bagian yang berada di dalam objek lain (lubang) ikut ke objek induknya agar lubang tetap terlihat.
+function splitObjects(d) {
+  const mx = a => a.reduce((p, q) => Math.max(p, q), -Infinity);
+  const mn = a => a.reduce((p, q) => Math.min(p, q), Infinity);
+  const parts = (d || '').split(/(?=[Mm])/).map(s => s.trim()).filter(s => /^[Mm]/.test(s));
+  const info = parts.map(p => {
+    const pts = subpaths(p).flat();
+    const xs = pts.map(q => q[0]), ys = pts.map(q => q[1]);
+    const area = xs.length ? (mx(xs) - mn(xs)) * (mx(ys) - mn(ys)) : 0;
+    return { d: p, xs, ys, area };
+  }).filter(s => s.xs.length >= 3);
+
+  // titik di dalam poligon (ray casting), memakai titik sudut subpath
+  const inside = (px, py, s) => {
+    let c = false;
+    for (let i = 0, j = s.xs.length - 1; i < s.xs.length; j = i++) {
+      const yi = s.ys[i], yj = s.ys[j];
+      if ((yi > py) !== (yj > py) && px < (s.xs[j] - s.xs[i]) * (py - yi) / (yj - yi) + s.xs[i]) c = !c;
+    }
+    return c;
+  };
+
+  // kedalaman = jumlah subpath yang melingkupi; ganjil berarti lubang
+  const parent = info.map((s, i) => {
+    let best = -1, bestArea = Infinity, depth = 0;
+    info.forEach((o, j) => {
+      if (j !== i && o.area > s.area && inside(s.xs[0], s.ys[0], o)) {
+        depth++;
+        if (o.area < bestArea) { bestArea = o.area; best = j; }
+      }
+    });
+    return { best, depth };
+  });
+  const rootOf = i => (parent[i].depth % 2 === 0 ? i : rootOf(parent[i].best));
+
+  const holes = {};
+  info.forEach((s, i) => {
+    if (parent[i].depth % 2 === 1) { const r = rootOf(i); (holes[r] = holes[r] || []).push(s.d); }
+  });
+  const out = [];
+  info.forEach((s, i) => {
+    if (parent[i].depth % 2 === 0) out.push([s.d, ...(holes[i] || [])].join(' '));
+  });
+  return out;
+}
+
+// Hitung skala dan posisi agar gambar SVG pas di kanvas target (di tengah, tanpa terpotong)
+function fitLayout(W, H) {
+  const rasio = $('rasio').value;
+  const Wt = Math.max(64, Math.min(4096, Math.round((+$('lebar').value || 1080) / 2) * 2));
+  const r = rasio === 'asli' ? W / H : rasio.split(':').map(Number).reduce((a, b) => a / b);
+  const Ht = Math.max(64, Math.round(Wt / r / 2) * 2);
+  const s = Math.min(Wt / W, Ht / H);
+  return { Wt, Ht, s, ox: (Wt - W * s) / 2, oy: (Ht - H * s) / 2 };
+}
+
+// Ubah path jadi perintah absolut M, L, C, Z. H, V, S, Q, T dan A dikonversi ke L atau C.
+function toAbs(d) {
+  const tok = (d || '').match(/[a-z]|[-+]?(?:\d+\.?\d*|\.\d+)(?:e[-+]?\d+)?/gi) || [];
+  const N = { M: 2, L: 2, H: 1, V: 1, C: 6, S: 4, Q: 4, T: 2, A: 7 };
+  const out = [];
+  let x = 0, y = 0, sx = 0, sy = 0, cmd = '', i = 0, qx = 0, qy = 0, prev = '';
+  const isCmd = t => /[a-z]/i.test(t);
+  while (i < tok.length) {
+    if (isCmd(tok[i])) cmd = tok[i++];
+    if (!cmd) break;
+    const C = cmd.toUpperCase(), rel = cmd !== C;
+    if (C === 'Z') { out.push({ c: 'Z' }); x = sx; y = sy; cmd = ''; prev = 'Z'; continue; }
+    if (!N[C]) break;
+    if (i >= tok.length || isCmd(tok[i])) continue;
+    const a = tok.slice(i, i + N[C]).map(parseFloat); i += N[C];
+    const P = k => [rel ? x + a[k] : a[k], rel ? y + a[k + 1] : a[k + 1]];
+    let e;
+    if (C === 'M') { e = P(0); out.push({ c: 'M', p: e }); sx = e[0]; sy = e[1]; cmd = rel ? 'l' : 'L'; }
+    else if (C === 'L') { e = P(0); out.push({ c: 'L', p: e }); }
+    else if (C === 'H') { e = [rel ? x + a[0] : a[0], y]; out.push({ c: 'L', p: e }); }
+    else if (C === 'V') { e = [x, rel ? y + a[0] : a[0]]; out.push({ c: 'L', p: e }); }
+    else if (C === 'C' || C === 'S') {
+      const c1 = C === 'C' ? P(0) : (prev === 'C' ? [2 * x - qx, 2 * y - qy] : [x, y]);
+      const c2 = C === 'C' ? P(2) : P(0);
+      e = C === 'C' ? P(4) : P(2);
+      out.push({ c: 'C', p: [...c1, ...c2, ...e] });
+      qx = c2[0]; qy = c2[1];
+    } else if (C === 'Q' || C === 'T') {
+      const q = C === 'Q' ? P(0) : (prev === 'Q' ? [2 * x - qx, 2 * y - qy] : [x, y]);
+      e = C === 'Q' ? P(2) : P(0);
+      out.push({ c: 'C', p: [x + 2 / 3 * (q[0] - x), y + 2 / 3 * (q[1] - y), e[0] + 2 / 3 * (q[0] - e[0]), e[1] + 2 / 3 * (q[1] - e[1]), ...e] });
+      qx = q[0]; qy = q[1];
+    } else if (C === 'A') {
+      e = P(5);
+      arcSegs(x, y, a[0], a[1], a[2] * Math.PI / 180, a[3], a[4], e[0], e[1]).forEach(g => out.push(g));
+    }
+    prev = C === 'S' ? 'C' : C === 'T' ? 'Q' : C;
+    x = e[0]; y = e[1];
+  }
+  return out;
+}
+
+// Lengkung elips (A) dipecah jadi kurva kubik, mengikuti rumus baku SVG
+function arcSegs(x1, y1, rx, ry, phi, fa, fs, x2, y2) {
+  if (x1 === x2 && y1 === y2) return [];
+  if (!rx || !ry) return [{ c: 'L', p: [x2, y2] }];
+  rx = Math.abs(rx); ry = Math.abs(ry);
+  const cp = Math.cos(phi), sp = Math.sin(phi);
+  const dx = (x1 - x2) / 2, dy = (y1 - y2) / 2;
+  const x1p = cp * dx + sp * dy, y1p = -sp * dx + cp * dy;
+  const lam = x1p * x1p / (rx * rx) + y1p * y1p / (ry * ry);
+  if (lam > 1) { rx *= Math.sqrt(lam); ry *= Math.sqrt(lam); }
+  const num = rx * rx * ry * ry - rx * rx * y1p * y1p - ry * ry * x1p * x1p;
+  const den = rx * rx * y1p * y1p + ry * ry * x1p * x1p;
+  let co = Math.sqrt(Math.max(0, num / den));
+  if (fa === fs) co = -co;
+  const cxp = co * rx * y1p / ry, cyp = -co * ry * x1p / rx;
+  const ccx = cp * cxp - sp * cyp + (x1 + x2) / 2, ccy = sp * cxp + cp * cyp + (y1 + y2) / 2;
+  const ang = (ux, uy, vx, vy) => Math.atan2(ux * vy - uy * vx, ux * vx + uy * vy);
+  const t1 = ang(1, 0, (x1p - cxp) / rx, (y1p - cyp) / ry);
+  let dt = ang((x1p - cxp) / rx, (y1p - cyp) / ry, (-x1p - cxp) / rx, (-y1p - cyp) / ry);
+  if (!fs && dt > 0) dt -= 2 * Math.PI;
+  else if (fs && dt < 0) dt += 2 * Math.PI;
+  const n = Math.max(1, Math.ceil(Math.abs(dt) / (Math.PI / 2)));
+  const dd = dt / n, t = 4 / 3 * Math.tan(dd / 4);
+  const pt = (u, v) => [ccx + rx * cp * u - ry * sp * v, ccy + rx * sp * u + ry * cp * v];
+  const segs = [];
+  for (let k = 0; k < n; k++) {
+    const a0 = t1 + k * dd, a1 = a0 + dd;
+    const c1 = pt(Math.cos(a0) - t * Math.sin(a0), Math.sin(a0) + t * Math.cos(a0));
+    const c2 = pt(Math.cos(a1) + t * Math.sin(a1), Math.sin(a1) - t * Math.cos(a1));
+    const e = pt(Math.cos(a1), Math.sin(a1));
+    segs.push({ c: 'C', p: [...c1, ...c2, ...e] });
+  }
+  return segs;
+}
+
+// Susun XML scene dengan format yang dibaca Alight Motion: satu shape per objek,
+// lokasi di tengah objek, path relatif ke tengah, skala sudah masuk ke koordinat (tanpa tag scale).
+function buildXml(shapes, lay, durSec, title) {
+  const T = Math.round(durSec * 1000), k0 = lay.s;
+  const f = v => +v.toFixed(3);
+  const body = shapes.map((sh, i) => {
+    const segs = toAbs(sh.d);
+    let x0 = Infinity, x1 = -Infinity, y0 = Infinity, y1 = -Infinity;
+    segs.forEach(g => (g.p || []).forEach((v, k) => {
+      if (k % 2) { y0 = Math.min(y0, v); y1 = Math.max(y1, v); }
+      else { x0 = Math.min(x0, v); x1 = Math.max(x1, v); }
+    }));
+    if (!Number.isFinite(x0)) return '';
+    const bx = (x0 + x1) / 2, by = (y0 + y1) / 2;
+    const pathD = segs.map(g => g.c === 'Z' ? 'Z' :
+      g.c + g.p.map((v, k) => f(k0 * (k % 2 ? v - by : v - bx))).join(' ')).join('');
+    const loc = `${(lay.ox + k0 * bx).toFixed(6)},${(lay.oy + k0 * by).toFixed(6)},0.000000`;
+    return `<shape id="${i + 1}" label="objek ${i + 1}" startTime="0" endTime="${T}" fillType="color" mediaFillMode="fill">` +
+      `<transform><location value="${loc}"/></transform>` +
+      `<fillColor value="${sh.fill.toLowerCase()}"/>` +
+      `<path d="${pathD}"/>` +
+      `</shape>`;
+  }).filter(Boolean).join('\n');
+  return `<?xml version='1.0' encoding='UTF-8' ?>\n` +
+    `<scene title="${esc(title)}" width="${lay.Wt}" height="${lay.Ht}" exportWidth="${lay.Wt}" exportHeight="${lay.Ht}" bgcolor="#00000000" totalTime="${T}" fps="60">\n` +
+    body + `\n</scene>`;
+}
+
+// Perbarui XML dan render setiap kali pengaturan berubah
+function update() {
+  if (!parsed) return;
+  parsed.lay = fitLayout(parsed.W, parsed.H);
+  const lay = parsed.lay;
+  xmlText = buildXml(parsed.shapes, lay, +$('dur').value || 5, baseName);
+  $('xmlout').textContent = xmlText.length > 4000 ? xmlText.slice(0, 4000) + '\n... (dipotong untuk pratinjau)' : xmlText;
+  $('dlxml').disabled = false;
+  $('st').textContent = `Selesai: ${parsed.shapes.length} bentuk, ${lay.Wt}×${lay.Ht} px, XML ${(xmlText.length / 1024).toFixed(0)} KB.`;
+}
+
+function saveBlob(name, blob) {
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = name;
+  document.body.appendChild(a); a.click(); a.remove();
+  setTimeout(() => URL.revokeObjectURL(a.href), 2000);
+}
+
+$('go').addEventListener('click', async () => {
+  const f = $('file').files[0];
+  if (!f) { $('st').textContent = 'Pilih file SVG dulu.'; return; }
+  if (!/svg/i.test(f.type) && !/\.svg$/i.test(f.name)) { $('st').textContent = 'File harus berformat SVG.'; return; }
+  $('go').disabled = true;
+  $('dlxml').disabled = true;
+  $('st').textContent = 'Memproses...';
+  try {
+    baseName = f.name.replace(/\.[^.]+$/, '') || 'gambar';
+    const { shapes, W, H } = shapesFromSvg(await f.text());
+    if (!shapes.length) throw new Error('Tidak ada bentuk yang bisa dibaca (path, rect, circle, ellipse, polygon).');
+    parsed = { shapes, W, H };
+    update();
+  } catch (e) {
+    $('st').textContent = 'Gagal: ' + e.message;
+  } finally {
+    $('go').disabled = false;
+  }
+});
+
+['rasio', 'lebar', 'dur'].forEach(id => $(id).addEventListener('input', update));
+$('dlxml').addEventListener('click', () => { if (xmlText) saveBlob(baseName + '.xml', new Blob([xmlText], { type: 'application/xml' })); });
+</script>
+</body>
+</html>

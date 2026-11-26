@@ -1,0 +1,129 @@
+<!doctype html>
+<html lang="id">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>JPG/PNG ke SVG</title>
+<style>
+*{box-sizing:border-box}
+body{font-family:system-ui,-apple-system,"Segoe UI",sans-serif;margin:0;background:#f6f1e7;color:#1d2a2f;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+.wrap{max-width:820px;margin:0 auto;padding-block:24px;min-width:0}
+h1{font-size:24px;margin:6px 0 4px}
+.panel{background:#fff;border:1px solid #e2d9c8;border-radius:14px;padding:16px;margin-bottom:14px;min-width:0}
+label{display:block;font-weight:600;font-size:14px;margin:12px 0 6px}
+input[type=file],select{width:100%;padding:9px;border:1px solid #e2d9c8;border-radius:10px;font:inherit;background:#fff;color:#1d2a2f}
+button{font:inherit;font-weight:700;background:#1f7a6d;color:#fff;border:0;border-radius:10px;padding:10px 14px;cursor:pointer;margin:12px 8px 0 0}
+button:disabled{opacity:.5;cursor:default}
+button.ghost{background:transparent;color:#1d2a2f;border:1px solid #e2d9c8}
+.muted{color:#5f6b70;font-size:13px}
+#prev{display:block;max-width:100%;max-height:50vh;border:1px solid #e2d9c8;border-radius:10px;background:repeating-conic-gradient(#eee 0 25%,#fff 0 50%) 0/16px 16px}
+</style>
+<script src="https://cdn.jsdelivr.net/npm/imagetracerjs@1.2.6/imagetracer_v1.2.6.js"></script>
+</head>
+<body>
+<div class="wrap">
+  <h1>JPG/PNG ke SVG</h1>
+  <p class="muted">Gambar dilacak jadi SVG di perangkat Anda. Hasilnya bisa diunduh sebagai SVG, lalu dibuka di menu SVG ke XML Alight Motion.</p>
+
+  <div class="panel">
+    <label for="file">File gambar</label>
+    <input id="file" type="file" accept=".jpg,.jpeg,.png,image/jpeg,image/png">
+
+    <label for="warna">Jumlah warna</label>
+    <select id="warna">
+      <option value="4">4 warna (lebih sederhana)</option>
+      <option value="8" selected>8 warna</option>
+      <option value="16">16 warna (lebih detail, file lebih besar)</option>
+    </select>
+
+    <label for="halus">Kehalusan tepi</label>
+    <select id="halus">
+      <option value="tajam">Tajam (detail banyak, tepi bisa kasar)</option>
+      <option value="sedang" selected>Sedang</option>
+      <option value="halus">Halus (tepi lembut, detail lebih sedikit)</option>
+    </select>
+
+    <div>
+      <button id="go">Proses</button>
+      <button class="ghost" id="dlsvg" disabled>Unduh SVG</button>
+    </div>
+    <p class="muted" id="st"></p>
+  </div>
+
+  <div class="panel">
+    <label>Pratinjau</label>
+    <img id="prev" alt="Pratinjau SVG" hidden>
+  </div>
+</div>
+<script>
+const $ = id => document.getElementById(id);
+let svgText = null, baseName = 'gambar', prevUrl = null;
+
+// Pengaturan pelacakan per tingkat kehalusan: blur awal meredam bintik, qtres lebih besar membuat kurva lebih mulus
+const PRESET = {
+  tajam:  { blurradius: 0, blurdelta: 20, ltres: 1, qtres: 1, pathomit: 8,  colorquantcycles: 3 },
+  sedang: { blurradius: 2, blurdelta: 20, ltres: 1, qtres: 2, pathomit: 16, colorquantcycles: 5 },
+  halus:  { blurradius: 4, blurdelta: 30, ltres: 2, qtres: 3, pathomit: 32, colorquantcycles: 5 }
+};
+
+// Lacak JPG/PNG jadi SVG memakai ImageTracer (dijalankan di browser)
+async function traceImage(file) {
+  if (!window.ImageTracer) throw new Error('Mesin pelacak gambar belum termuat. Periksa koneksi internet.');
+  const url = URL.createObjectURL(file);
+  try {
+    const img = await new Promise((res, rej) => {
+      const i = new Image();
+      i.onload = () => res(i);
+      i.onerror = () => rej(new Error('Gambar tidak bisa dibaca.'));
+      i.src = url;
+    });
+    const k = Math.min(1, 800 / Math.max(img.width, img.height));
+    const c = document.createElement('canvas');
+    c.width = Math.max(1, Math.round(img.width * k));
+    c.height = Math.max(1, Math.round(img.height * k));
+    const x = c.getContext('2d');
+    x.drawImage(img, 0, 0, c.width, c.height);
+    const imgd = x.getImageData(0, 0, c.width, c.height);
+    return ImageTracer.imagedataToSVG(imgd, {
+      numberofcolors: +$('warna').value, colorsampling: 2, layering: 0, scale: 1, roundcoords: 1,
+      ...PRESET[$('halus').value]
+    });
+  } finally {
+    URL.revokeObjectURL(url);
+  }
+}
+
+function save(name, text, type) {
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(new Blob([text], { type }));
+  a.download = name;
+  document.body.appendChild(a); a.click(); a.remove();
+  setTimeout(() => URL.revokeObjectURL(a.href), 2000);
+}
+
+$('go').addEventListener('click', async () => {
+  const f = $('file').files[0];
+  if (!f) { $('st').textContent = 'Pilih gambar dulu.'; return; }
+  if (!/^image\/(jpeg|png)$/.test(f.type) && !/\.(jpe?g|png)$/i.test(f.name)) { $('st').textContent = 'File harus JPG atau PNG.'; return; }
+  $('go').disabled = true;
+  $('dlsvg').disabled = true;
+  $('st').textContent = 'Memproses...';
+  try {
+    baseName = f.name.replace(/\.[^.]+$/, '') || 'gambar';
+    svgText = await traceImage(f);
+    if (prevUrl) URL.revokeObjectURL(prevUrl);
+    prevUrl = URL.createObjectURL(new Blob([svgText], { type: 'image/svg+xml' }));
+    $('prev').src = prevUrl; $('prev').hidden = false;
+    $('dlsvg').disabled = false;
+    $('st').textContent = `Selesai. SVG ${(svgText.length / 1024).toFixed(0)} KB.`;
+  } catch (e) {
+    $('st').textContent = 'Gagal: ' + e.message;
+  } finally {
+    $('go').disabled = false;
+  }
+});
+
+$('dlsvg').addEventListener('click', () => { if (svgText) save(baseName + '.svg', svgText, 'image/svg+xml'); });
+</script>
+</body>
+</html>

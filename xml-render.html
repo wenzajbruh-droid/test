@@ -1,0 +1,157 @@
+<!doctype html>
+<html lang="id">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Render XML Alight Motion</title>
+<style>
+*{box-sizing:border-box}
+body{font-family:system-ui,-apple-system,"Segoe UI",sans-serif;margin:0;background:#f6f1e7;color:#1d2a2f;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+.wrap{max-width:820px;margin:0 auto;padding-block:24px;min-width:0}
+h1{font-size:24px;margin:6px 0 4px}
+.panel{background:#fff;border:1px solid #e2d9c8;border-radius:14px;padding:16px;margin-bottom:14px;min-width:0}
+label{display:block;font-weight:600;font-size:14px;margin:12px 0 6px}
+input[type=file],select{width:100%;padding:9px;border:1px solid #e2d9c8;border-radius:10px;font:inherit;background:#fff;color:#1d2a2f}
+button{font:inherit;font-weight:700;background:#1f7a6d;color:#fff;border:0;border-radius:10px;padding:10px 14px;cursor:pointer;margin:12px 8px 0 0}
+button:disabled{opacity:.5;cursor:default}
+button.ghost{background:transparent;color:#1d2a2f;border:1px solid #e2d9c8}
+.muted{color:#5f6b70;font-size:13px}
+#cv{display:block;max-width:100%;height:auto;border:1px solid #e2d9c8;border-radius:10px;background:repeating-conic-gradient(#eee 0 25%,#fff 0 50%) 0/16px 16px}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>Render XML Alight Motion</h1>
+  <p class="muted">Unggah file XML scene (hasil menu SVG ke XML atau dari AM), lalu lihat hasil render dan unduh sebagai PNG. Ukuran mengikuti scene di XML.</p>
+
+  <div class="panel">
+    <label for="file">File XML</label>
+    <input id="file" type="file" accept=".xml,application/xml,text/xml">
+
+    <label for="skala">Skala hasil PNG</label>
+    <select id="skala">
+      <option value="1">1x (ukuran scene)</option>
+      <option value="2" selected>2x (lebih tajam)</option>
+      <option value="3">3x (paling tajam, file lebih besar)</option>
+    </select>
+
+    <div>
+      <button id="go">Render</button>
+      <button class="ghost" id="dlpng" disabled>Unduh PNG</button>
+    </div>
+    <p class="muted" id="st"></p>
+  </div>
+
+  <div class="panel">
+    <label>Pratinjau</label>
+    <canvas id="cv" width="1080" height="1080" aria-label="Pratinjau render"></canvas>
+  </div>
+</div>
+<script>
+const $ = id => document.getElementById(id);
+let baseName = 'scene';
+
+// Warna #AARRGGBB jadi rgba() untuk canvas
+function cssColor(argb) {
+  const h = argb.replace('#', '').padStart(8, 'F');
+  return `rgba(${parseInt(h.slice(2, 4), 16)},${parseInt(h.slice(4, 6), 16)},${parseInt(h.slice(6, 8), 16)},${parseInt(h.slice(0, 2), 16) / 255})`;
+}
+
+// Nilai atribut value; bila berupa keyframe, ambil nilai pertama
+function valueOf(el) {
+  if (!el) return null;
+  return el.getAttribute('value') || (el.querySelector('kf') ? el.querySelector('kf').getAttribute('value') : null);
+}
+
+function parseXy(s, def) {
+  if (!s) return def;
+  const p = s.split(',').map(parseFloat);
+  return [p[0] || 0, p[1] === undefined || Number.isNaN(p[1]) ? def[1] : p[1]];
+}
+
+// Bentuk primitif AM (rect, roundrect, ellipse) tanpa tag path: dibuat dari property size dan cornerRadius, berpusat di (0,0)
+function primitiveD(shape) {
+  const sz = shape.querySelector('property[name="size"]');
+  if (!sz) return null;
+  const [w, h] = parseXy(sz.getAttribute('value'), [0, 0]);
+  if (!(w > 0 && h > 0)) return null;
+  const x = -w / 2, y = -h / 2;
+  if (/ellipse|circle/.test(shape.getAttribute('s') || '')) {
+    const rx = w / 2, ry = h / 2;
+    return `M${-rx} 0A${rx} ${ry} 0 1 0 ${rx} 0A${rx} ${ry} 0 1 0 ${-rx} 0Z`;
+  }
+  const r = Math.min(parseFloat(valueOf(shape.querySelector('property[name="cornerRadius"]'))) || 0, w / 2, h / 2);
+  if (r <= 0) return `M${x} ${y}H${x + w}V${y + h}H${x}Z`;
+  return `M${x + r} ${y}H${x + w - r}A${r} ${r} 0 0 1 ${x + w} ${y + r}V${y + h - r}A${r} ${r} 0 0 1 ${x + w - r} ${y + h}H${x + r}A${r} ${r} 0 0 1 ${x} ${y + h - r}V${y + r}A${r} ${r} 0 0 1 ${x + r} ${y}Z`;
+}
+
+function renderScene(xmlStr, skala) {
+  const doc = new DOMParser().parseFromString(xmlStr, 'application/xml');
+  if (doc.querySelector('parsererror')) throw new Error('XML tidak valid.');
+  const scene = doc.querySelector('scene');
+  if (!scene) throw new Error('Tag scene tidak ditemukan.');
+  const W = parseFloat(scene.getAttribute('width')) || 1080;
+  const H = parseFloat(scene.getAttribute('height')) || 1080;
+  const cv = $('cv');
+  cv.width = Math.round(W * skala); cv.height = Math.round(H * skala);
+  const ctx = cv.getContext('2d');
+  ctx.clearRect(0, 0, cv.width, cv.height);
+
+  // Warna latar bila tidak transparan
+  const bg = scene.getAttribute('bgcolor');
+  if (bg && bg.replace('#', '').length === 8 && !bg.endsWith('00') && !/^#00/.test(bg)) {
+    ctx.fillStyle = cssColor(bg); ctx.fillRect(0, 0, cv.width, cv.height);
+  }
+
+  let count = 0;
+  for (const shape of doc.querySelectorAll('shape')) {
+    const path = shape.querySelector('path');
+    const d = path ? path.getAttribute('d') : primitiveD(shape);
+    if (!d) continue;
+    const tf = shape.querySelector('transform');
+    const [lx, ly] = parseXy(valueOf(tf && tf.querySelector('location')), [0, 0]);
+    const [sx, sy] = parseXy(valueOf(tf && tf.querySelector('scale')), [1, 1]);
+    const fill = valueOf(shape.querySelector('fillColor'));
+    // Titik (x,y) pada path -> skala * (lokasi + skala_bentuk * titik), seperti pemutar AM
+    ctx.setTransform(skala * sx, 0, 0, skala * sy, skala * lx, skala * ly);
+    ctx.fillStyle = fill ? cssColor(fill) : '#000000';
+    ctx.fill(new Path2D(d), 'evenodd');
+    count++;
+  }
+  ctx.setTransform(1, 0, 0, 1, 0, 0);
+  return { count, W, H };
+}
+
+let xmlStr = null;
+
+$('go').addEventListener('click', async () => {
+  const f = $('file').files[0];
+  if (!f) { $('st').textContent = 'Pilih file XML dulu.'; return; }
+  $('go').disabled = true;
+  $('dlpng').disabled = true;
+  $('st').textContent = 'Merender...';
+  try {
+    baseName = f.name.replace(/\.[^.]+$/, '') || 'scene';
+    xmlStr = await f.text();
+    const r = renderScene(xmlStr, +$('skala').value);
+    if (!r.count) throw new Error('Tidak ada bentuk (shape) yang bisa dirender.');
+    $('dlpng').disabled = false;
+    $('st').textContent = `Selesai: ${r.count} bentuk, ${r.W}×${r.H} px (hasil ${$('cv').width}×${$('cv').height} px).`;
+  } catch (e) {
+    $('st').textContent = 'Gagal: ' + e.message;
+  } finally {
+    $('go').disabled = false;
+  }
+});
+
+$('dlpng').addEventListener('click', () => $('cv').toBlob(blob => {
+  if (!blob) return;
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = baseName + '.png';
+  document.body.appendChild(a); a.click(); a.remove();
+  setTimeout(() => URL.revokeObjectURL(a.href), 2000);
+}, 'image/png'));
+</script>
+</body>
+</html>

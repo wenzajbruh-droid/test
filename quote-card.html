@@ -1,0 +1,95 @@
+<!doctype html>
+<html lang="id">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="claude:viewport-fit-sides" content="cover">
+<title>Kartu Kutipan · Test Work</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@500;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="styles.css">
+</head>
+<body>
+<div class="wrap">
+  <header class="top"><a class="brand" href="index.html">Test<span>Work</span></a></header>
+  <h1>Kartu kutipan</h1>
+  <p class="lead">Tulis kutipan Anda sendiri, lalu unduh sebagai gambar PNG 1080 × 1080.</p>
+
+  <div class="panel">
+    <label for="quote">Kutipan</label>
+    <textarea id="quote">Kerja kecil yang dilakukan setiap hari lebih berarti daripada rencana besar yang tidak pernah dimulai.</textarea>
+    <label for="author">Nama penulis</label>
+    <input id="author" type="text" value="Tulis nama Anda" maxlength="60">
+    <label for="theme">Gaya</label>
+    <select id="theme">
+      <option value="teal">Teal</option>
+      <option value="sand">Pasir</option>
+      <option value="night">Malam</option>
+    </select>
+    <div class="row" style="margin-top:12px">
+      <button id="dl">Unduh PNG</button>
+    </div>
+  </div>
+
+  <div class="panel">
+    <canvas id="cv" width="1080" height="1080" aria-label="Pratinjau kartu kutipan"></canvas>
+  </div>
+</div>
+<script>
+const $ = id => document.getElementById(id);
+const THEMES = {
+  teal:  { bg: ['#1f7a6d', '#124a42'], ink: '#ffffff', sub: '#c9ece6' },
+  sand:  { bg: ['#f6e7c8', '#e7cf9f'], ink: '#2b2418', sub: '#6b5a3c' },
+  night: { bg: ['#1d2a2f', '#0c1214'], ink: '#f1efe9', sub: '#9fb1b6' }
+};
+
+// Pecah teks menjadi baris yang muat di lebar tertentu
+function wrap(ctx, text, maxW) {
+  const words = text.split(/\s+/).filter(Boolean);
+  const lines = []; let line = '';
+  for (const w of words) {
+    const test = line ? line + ' ' + w : w;
+    if (ctx.measureText(test).width > maxW && line) { lines.push(line); line = w; }
+    else line = test;
+  }
+  if (line) lines.push(line);
+  return lines;
+}
+
+function draw() {
+  const cv = $('cv'), ctx = cv.getContext('2d');
+  const t = THEMES[$('theme').value];
+  const g = ctx.createLinearGradient(0, 0, cv.width, cv.height);
+  g.addColorStop(0, t.bg[0]); g.addColorStop(1, t.bg[1]);
+  ctx.fillStyle = g; ctx.fillRect(0, 0, cv.width, cv.height);
+
+  const pad = 120, maxW = cv.width - pad * 2;
+  ctx.fillStyle = t.ink;
+  ctx.font = '700 64px "Plus Jakarta Sans", system-ui, sans-serif';
+  ctx.textBaseline = 'top';
+  const lines = wrap(ctx, '“' + $('quote').value + '”', maxW);
+  const lh = 84;
+  let y = (cv.height - lines.length * lh) / 2 - 60;
+  for (const l of lines) { ctx.fillText(l, pad, y); y += lh; }
+
+  ctx.fillStyle = t.sub;
+  ctx.font = '500 36px "Plus Jakarta Sans", system-ui, sans-serif';
+  ctx.fillText('— ' + ($('author').value || '').slice(0, 60), pad, y + 40);
+}
+
+$('dl').addEventListener('click', () => {
+  $('cv').toBlob(blob => {
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = 'kutipan.png';
+    document.body.appendChild(a); a.click(); a.remove();
+    setTimeout(() => URL.revokeObjectURL(a.href), 2000);
+  }, 'image/png');
+});
+['quote', 'author', 'theme'].forEach(id => $(id).addEventListener('input', draw));
+document.fonts && document.fonts.ready.then(draw);
+draw();
+</script>
+</body>
+</html>

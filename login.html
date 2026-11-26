@@ -1,0 +1,65 @@
+<!doctype html>
+<html lang="id">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="claude:viewport-fit-sides" content="cover">
+<title>Masuk · Test Work</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@500;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="styles.css">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script>
+</head>
+<body>
+<div class="wrap">
+  <header class="top"><a class="brand" href="index.html">Test<span>Work</span></a></header>
+  <h1>Masuk</h1>
+  <p class="lead">Akun bersifat opsional. Semua alat tetap bisa dipakai tanpa masuk.</p>
+
+  <div class="panel" id="guest">
+    <label for="email">Email</label>
+    <input id="email" type="email" autocomplete="email">
+    <label for="pass">Password (minimal 6 karakter)</label>
+    <input id="pass" type="password" autocomplete="current-password" minlength="6">
+    <div class="row" style="margin-top:12px">
+      <button id="login">Masuk</button>
+      <button class="ghost" id="signup">Daftar</button>
+    </div>
+    <p class="muted" id="msg" aria-live="polite"></p>
+  </div>
+
+  <div class="panel" id="user" hidden>
+    <p>Masuk sebagai <b id="who"></b></p>
+    <button class="ghost" id="logout">Keluar</button>
+  </div>
+</div>
+<script>
+const sb = supabase.createClient('https://dzocdkmktfnrjqsxnbvi.supabase.co', 'sb_publishable_1kyivS08xh581HuGjVwcAw_Bzeiew6Y');
+const $ = id => document.getElementById(id);
+const say = t => { $('msg').textContent = t; };
+const creds = () => ({ email: $('email').value.trim(), password: $('pass').value });
+
+function show(session) {
+  const on = !!session;
+  $('guest').hidden = on;
+  $('user').hidden = !on;
+  if (on) $('who').textContent = session.user.email;
+}
+
+$('login').addEventListener('click', async () => {
+  const { error } = await sb.auth.signInWithPassword(creds());
+  if (error) say(error.message);
+});
+$('signup').addEventListener('click', async () => {
+  const { data, error } = await sb.auth.signUp(creds());
+  if (error) return say(error.message);
+  say(data.session ? 'Akun dibuat dan Anda sudah masuk.' : 'Cek email Anda untuk konfirmasi, lalu masuk.');
+});
+$('logout').addEventListener('click', () => sb.auth.signOut());
+
+sb.auth.onAuthStateChange((_event, session) => show(session));
+sb.auth.getSession().then(({ data }) => show(data.session));
+</script>
+</body>
+</html>

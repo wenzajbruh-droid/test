@@ -1,0 +1,96 @@
+<!doctype html>
+<html lang="id">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="claude:viewport-fit-sides" content="cover">
+<title>Pesan Ponsel Retro · Test Work</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@500;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="styles.css">
+</head>
+<body>
+<div class="wrap">
+  <header class="top"><a class="brand" href="index.html">Test<span>Work</span></a></header>
+  <h1>Pesan ponsel retro</h1>
+  <p class="lead">Gambar pesan dengan layar hijau kusam gaya ponsel lama. Unduh sebagai PNG.</p>
+
+  <div class="panel">
+    <label for="from">Pengirim</label>
+    <input id="from" type="text" value="Ibu" maxlength="30">
+    <label for="msg">Isi pesan</label>
+    <textarea id="msg">Sudah makan belum? Jangan lupa pulang sebelum gelap.</textarea>
+    <label for="time">Jam</label>
+    <input id="time" type="text" value="18:42" maxlength="8">
+    <div class="row" style="margin-top:12px">
+      <button id="dl">Unduh PNG</button>
+    </div>
+  </div>
+
+  <div class="panel">
+    <canvas id="cv" width="720" height="960" aria-label="Pratinjau pesan"></canvas>
+  </div>
+</div>
+<script>
+const $ = id => document.getElementById(id);
+const SCREEN = '#a9c18e', INK = '#1d2a14', FRAME = '#2b2f2b';
+
+function wrap(ctx, text, maxW) {
+  const out = [];
+  for (const para of text.split('\n')) {
+    let line = '';
+    for (const w of para.split(/\s+/).filter(Boolean)) {
+      const test = line ? line + ' ' + w : w;
+      if (ctx.measureText(test).width > maxW && line) { out.push(line); line = w; }
+      else line = test;
+    }
+    out.push(line);
+  }
+  return out;
+}
+
+function draw() {
+  const cv = $('cv'), ctx = cv.getContext('2d');
+  // Bingkai ponsel
+  ctx.fillStyle = FRAME; ctx.fillRect(0, 0, cv.width, cv.height);
+  // Layar
+  const x = 60, y = 90, w = cv.width - 120, h = cv.height - 180;
+  ctx.fillStyle = SCREEN; ctx.fillRect(x, y, w, h);
+  // Garis pindai tipis agar terasa seperti layar lama
+  ctx.fillStyle = 'rgba(0,0,0,0.05)';
+  for (let yy = y; yy < y + h; yy += 4) ctx.fillRect(x, yy, w, 2);
+
+  ctx.fillStyle = INK;
+  ctx.font = '700 30px "Plus Jakarta Sans", system-ui, sans-serif';
+  ctx.textBaseline = 'top';
+  ctx.fillText(($('from').value || '').slice(0, 30), x + 30, y + 30);
+  ctx.font = '500 22px "Plus Jakarta Sans", system-ui, sans-serif';
+  ctx.fillText(($('time').value || '').slice(0, 8), x + w - 150, y + 36);
+
+  ctx.fillRect(x + 30, y + 90, w - 60, 3);
+  ctx.font = '500 34px "Plus Jakarta Sans", system-ui, sans-serif';
+  const lines = wrap(ctx, $('msg').value, w - 60).slice(0, 14);
+  let ly = y + 120;
+  for (const l of lines) { ctx.fillText(l, x + 30, ly); ly += 46; }
+
+  // Tombol bawah
+  ctx.fillStyle = FRAME;
+  ctx.fillRect(x + w / 2 - 60, cv.height - 70, 120, 24);
+}
+
+$('dl').addEventListener('click', () => {
+  $('cv').toBlob(blob => {
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = 'pesan.png';
+    document.body.appendChild(a); a.click(); a.remove();
+    setTimeout(() => URL.revokeObjectURL(a.href), 2000);
+  }, 'image/png');
+});
+['from', 'msg', 'time'].forEach(id => $(id).addEventListener('input', draw));
+document.fonts && document.fonts.ready.then(draw);
+draw();
+</script>
+</body>
+</html>

@@ -1,0 +1,113 @@
+<!doctype html>
+<html lang='id'>
+<head>
+<meta charset='utf-8'>
+<meta name='viewport' content='width=device-width,initial-scale=1,viewport-fit=cover'>
+<meta name='claude:viewport-fit-sides' content='cover'>
+<title>Animasi Teks · Test Work</title>
+<link rel='preconnect' href='https://fonts.googleapis.com'>
+<link rel='preconnect' href='https://fonts.gstatic.com' crossorigin>
+<link href='https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@500;700;800&display=swap' rel='stylesheet'>
+<link rel='stylesheet' href='styles.css'>
+</head>
+<body>
+<div class='wrap'>
+  <header class='top'><a class='brand' href='index.html'>Test<span>Work</span></a></header>
+  <h1>Animasi teks</h1>
+  <p class='lead'>Pilih efek, lihat pratinjaunya, lalu unduh satu siklus sebagai video WebM.</p>
+
+  <div class='panel'>
+    <label for='txt'>Teks</label>
+    <textarea id='txt' maxlength='80'>Halo dari Test Work</textarea>
+    <label for='fx'>Efek</label>
+    <select id='fx'>
+      <option value='fade'>Muncul pelan</option>
+      <option value='rise'>Naik dari bawah</option>
+      <option value='pop'>Membesar</option>
+      <option value='type'>Mengetik</option>
+    </select>
+    <label for='dur'>Durasi: <span id='durv'>2</span> detik</label>
+    <input id='dur' type='range' min='1' max='5' value='2' step='0.5'>
+    <label for='fg'>Warna teks</label>
+    <input id='fg' type='color' value='#1f7a6d'>
+    <label for='bg'>Warna latar</label>
+    <input id='bg' type='color' value='#ffffff'>
+    <div class='row' style='margin-top:12px'>
+      <button id='dl'>Unduh WebM</button>
+      <span class='muted' id='st'></span>
+    </div>
+  </div>
+
+  <div class='panel'>
+    <canvas id='cv' width='720' height='405' aria-label='Pratinjau animasi'></canvas>
+  </div>
+</div>
+<script>
+const $ = id => document.getElementById(id);
+const cv = $('cv'), ctx = cv.getContext('2d');
+const W = cv.width, H = cv.height;
+let start = performance.now();
+
+function lines(text, maxW) {
+  const out = []; let line = '';
+  for (const w of text.split(/\s+/).filter(Boolean)) {
+    const t = line ? line + ' ' + w : w;
+    if (ctx.measureText(t).width > maxW && line) { out.push(line); line = w; } else line = t;
+  }
+  if (line) out.push(line);
+  return out;
+}
+
+function frame(p) {
+  const e = 1 - Math.pow(1 - p, 3);
+  const fx = $('fx').value;
+  const full = $('txt').value || ' ';
+  let alpha = 1, dy = 0, s = 1, shown = full;
+  if (fx === 'fade') alpha = e;
+  if (fx === 'rise') { alpha = e; dy = (1 - e) * 60; }
+  if (fx === 'pop') { alpha = e; s = 0.6 + 0.4 * e; }
+  if (fx === 'type') shown = full.slice(0, Math.round(full.length * p));
+  ctx.fillStyle = $('bg').value; ctx.fillRect(0, 0, W, H);
+  ctx.save();
+  ctx.globalAlpha = alpha;
+  ctx.fillStyle = $('fg').value;
+  ctx.font = '700 56px "Plus Jakarta Sans", system-ui, sans-serif';
+  ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+  ctx.translate(W / 2, H / 2 + dy); ctx.scale(s, s);
+  const ls = lines(shown, W - 120);
+  const lh = 68;
+  ls.forEach((l, i) => ctx.fillText(l, 0, (i - (ls.length - 1) / 2) * lh));
+  ctx.restore();
+}
+
+function loop(now) {
+  const dur = +$('dur').value * 1000;
+  frame(((now - start) % dur) / dur);
+  requestAnimationFrame(loop);
+}
+
+$('dur').addEventListener('input', e => { $('durv').textContent = e.target.value; });
+$('dl').addEventListener('click', () => {
+  if (!window.MediaRecorder) { $('st').textContent = 'Browser ini tidak mendukung perekaman.'; return; }
+  const dur = +$('dur').value * 1000;
+  const type = MediaRecorder.isTypeSupported('video/webm;codecs=vp9') ? 'video/webm;codecs=vp9' : 'video/webm';
+  const rec = new MediaRecorder(cv.captureStream(30), { mimeType: type });
+  const chunks = [];
+  rec.ondataavailable = e => chunks.push(e.data);
+  rec.onstop = () => {
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(new Blob(chunks, { type: 'video/webm' }));
+    a.download = 'animasi.webm';
+    document.body.appendChild(a); a.click(); a.remove();
+    setTimeout(() => URL.revokeObjectURL(a.href), 2000);
+    $('st').textContent = 'Selesai.';
+  };
+  $('st').textContent = 'Merekam...';
+  start = performance.now();
+  rec.start();
+  setTimeout(() => rec.stop(), dur + 100);
+});
+requestAnimationFrame(loop);
+</script>
+</body>
+</html>

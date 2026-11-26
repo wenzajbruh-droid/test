@@ -1,0 +1,79 @@
+<!doctype html>
+<html lang='id'>
+<head>
+<meta charset='utf-8'>
+<meta name='viewport' content='width=device-width,initial-scale=1,viewport-fit=cover'>
+<meta name='claude:viewport-fit-sides' content='cover'>
+<title>Foto Harian NASA · Test Work</title>
+<link rel='preconnect' href='https://fonts.googleapis.com'>
+<link rel='preconnect' href='https://fonts.gstatic.com' crossorigin>
+<link href='https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@500;700;800&display=swap' rel='stylesheet'>
+<link rel='stylesheet' href='styles.css'>
+</head>
+<body>
+<div class='wrap'>
+  <header class='top'><a class='brand' href='index.html'>Test<span>Work</span></a></header>
+  <h1>Foto harian NASA</h1>
+  <p class='lead'>Gambar astronomi harian dari NASA (APOD). Pilih tanggal atau acak. Sumber: api.nasa.gov.</p>
+
+  <div class='panel'>
+    <div class='row'>
+      <input id='date' type='date' min='1995-06-16' style='width:auto'>
+      <button id='show'>Tampilkan</button>
+      <button class='ghost' id='rnd'>Acak tanggal</button>
+    </div>
+    <p class='muted' id='st'></p>
+  </div>
+
+  <div class='panel' id='card' hidden>
+    <div id='media'></div>
+    <h2 id='title' style='font-size:20px;margin:14px 0 4px'></h2>
+    <p class='muted' id='meta'></p>
+    <p id='exp' style='white-space:pre-line'></p>
+  </div>
+</div>
+<script>
+const $ = id => document.getElementById(id);
+const KEY = 'DEMO_KEY'; // ganti dengan API key Anda dari api.nasa.gov
+const today = new Date();
+const iso = d => d.toISOString().slice(0, 10);
+$('date').max = iso(today);
+$('date').value = iso(today);
+
+async function load(date) {
+  $('st').textContent = 'Memuat...';
+  $('card').hidden = true;
+  try {
+    const r = await fetch(`https://api.nasa.gov/planetary/apod?api_key=${KEY}&date=${date}`);
+    if (!r.ok) throw new Error('HTTP ' + r.status);
+    const d = await r.json();
+    const media = $('media'); media.innerHTML = '';
+    if (d.media_type === 'video') {
+      const a = document.createElement('a');
+      a.href = d.url; a.target = '_blank'; a.rel = 'noopener'; a.textContent = 'Buka video di situs NASA';
+      media.appendChild(a);
+    } else {
+      const img = document.createElement('img');
+      img.src = d.url; img.alt = d.title; img.className = 'preview'; img.loading = 'lazy';
+      media.appendChild(img);
+    }
+    $('title').textContent = d.title;
+    $('meta').textContent = d.date + (d.copyright ? ' · © ' + d.copyright.trim() : ' · Domain publik NASA');
+    $('exp').textContent = d.explanation;
+    $('card').hidden = false;
+    $('st').textContent = '';
+  } catch (e) {
+    $('st').textContent = 'Gagal memuat (' + e.message + '). Gambar hari ini mungkin belum tersedia, atau batas akses sudah habis. Coba tanggal lain.';
+  }
+}
+
+$('show').addEventListener('click', () => { if ($('date').value) load($('date').value); });
+$('rnd').addEventListener('click', () => {
+  const min = new Date('1995-06-16').getTime(), max = today.getTime();
+  const d = iso(new Date(min + Math.random() * (max - min)));
+  $('date').value = d; load(d);
+});
+load(iso(today));
+</script>
+</body>
+</html>

@@ -1,0 +1,100 @@
+<!doctype html>
+<html lang='id'>
+<head>
+<meta charset='utf-8'>
+<meta name='viewport' content='width=device-width,initial-scale=1,viewport-fit=cover'>
+<meta name='claude:viewport-fit-sides' content='cover'>
+<title>Kompresor Video · Test Work</title>
+<link rel='preconnect' href='https://fonts.googleapis.com'>
+<link rel='preconnect' href='https://fonts.gstatic.com' crossorigin>
+<link href='https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@500;700;800&display=swap' rel='stylesheet'>
+<link rel='stylesheet' href='styles.css'>
+<script src='https://cdn.jsdelivr.net/npm/@ffmpeg/ffmpeg@0.12.10/dist/umd/ffmpeg.js'></script>
+<script src='https://cdn.jsdelivr.net/npm/@ffmpeg/util@0.12.1/dist/umd/index.js'></script>
+</head>
+<body>
+<div class='wrap'>
+  <header class='top'><a class='brand' href='index.html'>Test<span>Work</span></a></header>
+  <h1>Kompresor video</h1>
+  <p class='lead'>Perkecil ukuran video langsung di perangkat Anda. Video tidak dikirim ke server. Video besar bisa memakan waktu lama.</p>
+
+  <div class='panel'>
+    <label for='file'>Video</label>
+    <input id='file' type='file' accept='video/*'>
+    <label for='res'>Resolusi</label>
+    <select id='res'>
+      <option value='720'>720p (tinggi 720 px)</option>
+      <option value='480' selected>480p (tinggi 480 px)</option>
+    </select>
+    <label for='q'>Kualitas</label>
+    <select id='q'>
+      <option value='4'>Tinggi (ukuran lebih besar)</option>
+      <option value='6' selected>Sedang</option>
+      <option value='9'>Kecil (kualitas lebih rendah)</option>
+    </select>
+    <div class='row' style='margin-top:12px'>
+      <button id='go'>Kompres</button>
+      <span class='muted' id='st'></span>
+    </div>
+  </div>
+
+  <div class='panel' id='result' hidden>
+    <p id='info'></p>
+    <button class='ghost' id='dl'>Unduh MP4</button>
+  </div>
+</div>
+<script>
+const $ = id => document.getElementById(id);
+const mb = n => (n / 1048576).toFixed(1) + ' MB';
+let ff = null, outUrl = null;
+
+async function getFF() {
+  if (ff) return ff;
+  const { FFmpeg } = window.FFmpegWASM, { toBlobURL } = window.FFmpegUtil;
+  ff = new FFmpeg();
+  ff.on('progress', ({ progress }) => { $('st').textContent = 'Memproses... ' + Math.min(99, Math.round(progress * 100)) + '%'; });
+  const base = 'https://cdn.jsdelivr.net/npm/@ffmpeg/core@0.12.6/dist/umd';
+  await ff.load({
+    coreURL: await toBlobURL(base + '/ffmpeg-core.js', 'text/javascript'),
+    wasmURL: await toBlobURL(base + '/ffmpeg-core.wasm', 'application/wasm')
+  });
+  return ff;
+}
+
+$('go').addEventListener('click', async () => {
+  const f = $('file').files[0];
+  if (!f) { $('st').textContent = 'Pilih video dulu.'; return; }
+  $('go').disabled = true;
+  $('result').hidden = true;
+  try {
+    $('st').textContent = 'Menyiapkan mesin video (unduhan pertama bisa puluhan MB)...';
+    const m = await getFF();
+    await m.writeFile('in', new Uint8Array(await f.arrayBuffer()));
+    await m.exec(['-i', 'in', '-vf', 'scale=-2:' + $('res').value,
+      '-c:v', 'mpeg4', '-q:v', $('q').value,
+      '-c:a', 'aac', '-b:a', '96k', 'out.mp4']);
+    const data = await m.readFile('out.mp4');
+    await m.deleteFile('in');
+    await m.deleteFile('out.mp4');
+    const blob = new Blob([data], { type: 'video/mp4' });
+    if (outUrl) URL.revokeObjectURL(outUrl);
+    outUrl = URL.createObjectURL(blob);
+    $('info').textContent = 'Dari ' + mb(f.size) + ' menjadi ' + mb(blob.size) + ' (sekitar ' + Math.max(0, Math.round(100 - blob.size / f.size * 100)) + '% lebih kecil).';
+    $('result').hidden = false;
+    $('st').textContent = 'Selesai.';
+  } catch (e) {
+    $('st').textContent = 'Gagal: ' + e.message;
+  } finally {
+    $('go').disabled = false;
+  }
+});
+
+$('dl').addEventListener('click', () => {
+  if (!outUrl) return;
+  const a = document.createElement('a');
+  a.href = outUrl; a.download = 'video-kecil.mp4';
+  document.body.appendChild(a); a.click(); a.remove();
+});
+</script>
+</body>
+</html>

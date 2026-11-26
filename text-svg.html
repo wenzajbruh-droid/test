@@ -1,0 +1,75 @@
+<!doctype html>
+<html lang="id">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="claude:viewport-fit-sides" content="cover">
+<title>Teks ke SVG · Test Work</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@500;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="styles.css">
+</head>
+<body>
+<div class="wrap">
+  <header class="top"><a class="brand" href="index.html">Test<span>Work</span></a></header>
+  <h1>Teks ke SVG</h1>
+  <p class="lead">Buat file SVG dari tulisan. Teks di dalam SVG masih berupa teks, jadi font yang dipakai harus terpasang di perangkat yang membukanya.</p>
+
+  <div class="panel">
+    <label for="txt">Tulisan</label>
+    <textarea id="txt">Halo dari Test Work</textarea>
+    <label for="size">Ukuran huruf: <span id="sizev">72</span> px</label>
+    <input id="size" type="range" min="16" max="200" value="72">
+    <label for="color">Warna teks</label>
+    <input id="color" type="color" value="#1f7a6d">
+    <label for="bg">Warna latar</label>
+    <input id="bg" type="color" value="#ffffff">
+    <div class="row" style="margin-top:12px">
+      <button id="dl">Unduh SVG</button>
+    </div>
+  </div>
+
+  <div class="panel">
+    <label>Pratinjau</label>
+    <div id="prev"></div>
+  </div>
+</div>
+<script>
+const $ = id => document.getElementById(id);
+const esc = s => s.replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'})[c]);
+
+function build() {
+  const lines = $('txt').value.split('\n').filter(l => l.length) || [''];
+  const size = +$('size').value;
+  const lh = size * 1.25;
+  const w = Math.max(200, Math.ceil(Math.max(...lines.map(l => l.length)) * size * 0.6 + size));
+  const h = Math.ceil(lines.length * lh + size * 0.6);
+  const tspans = lines.map((l, i) =>
+    `<tspan x="${w / 2}" y="${size + i * lh}">${esc(l)}</tspan>`).join('');
+  return `<svg xmlns="http://www.w3.org/2000/svg" width="${w}" height="${h}" viewBox="0 0 ${w} ${h}">` +
+    `<rect width="100%" height="100%" fill="${$('bg').value}"/>` +
+    `<text text-anchor="middle" font-family="Plus Jakarta Sans, Arial, sans-serif" font-size="${size}" font-weight="700" fill="${$('color').value}">${tspans}</text>` +
+    `</svg>`;
+}
+
+function render() {
+  $('sizev').textContent = $('size').value;
+  $('prev').innerHTML = build();
+  $('prev').querySelector('svg').style.maxWidth = '100%';
+  $('prev').querySelector('svg').style.height = 'auto';
+}
+
+$('dl').addEventListener('click', () => {
+  const blob = new Blob([build()], { type: 'image/svg+xml' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = 'teks.svg';
+  document.body.appendChild(a); a.click(); a.remove();
+  setTimeout(() => URL.revokeObjectURL(a.href), 2000);
+});
+['txt', 'size', 'color', 'bg'].forEach(id => $(id).addEventListener('input', render));
+render();
+</script>
+</body>
+</html>

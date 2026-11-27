@@ -29,12 +29,12 @@ button.ghost{background:transparent;color:#0B0B0C;border:1px solid #0B0B0C}
     <label for="file">File gambar</label>
     <input id="file" type="file" accept=".jpg,.jpeg,.png,image/jpeg,image/png">
 
-    <label for="warna">Jumlah warna</label>
-    <select id="warna">
-      <option value="4">4 warna (lebih sederhana)</option>
-      <option value="8" selected>8 warna</option>
-      <option value="16">16 warna (lebih detail, file lebih besar)</option>
-    </select>
+    <label for="warna">Jumlah warna (2–100)</label>
+    <input id="warna" type="number" min="2" max="100" value="8">
+
+    <label for="grid">Ketajaman grid (50–1000 px)</label>
+    <input id="grid" type="number" min="50" max="1000" step="10" value="800">
+    <p class="muted">Makin besar, makin detail tapi makin lama diproses.</p>
 
     <label for="halus">Kehalusan tepi</label>
     <select id="halus">
@@ -77,7 +77,8 @@ async function traceImage(file) {
       i.onerror = () => rej(new Error('Gambar tidak bisa dibaca.'));
       i.src = url;
     });
-    const k = Math.min(1, 800 / Math.max(img.width, img.height));
+    const G = Math.min(1000, Math.max(50, +$('grid').value || 800));
+    const k = Math.min(1, G / Math.max(img.width, img.height));
     const c = document.createElement('canvas');
     c.width = Math.max(1, Math.round(img.width * k));
     c.height = Math.max(1, Math.round(img.height * k));
@@ -85,7 +86,7 @@ async function traceImage(file) {
     x.drawImage(img, 0, 0, c.width, c.height);
     const imgd = x.getImageData(0, 0, c.width, c.height);
     return ImageTracer.imagedataToSVG(imgd, {
-      numberofcolors: +$('warna').value, colorsampling: 2, layering: 0, scale: 1, roundcoords: 1,
+      numberofcolors: Math.min(100, Math.max(2, +$('warna').value || 8)), colorsampling: 2, layering: 0, scale: 1, roundcoords: 1,
       ...PRESET[$('halus').value]
     });
   } finally {

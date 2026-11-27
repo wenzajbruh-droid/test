@@ -525,7 +525,7 @@ async function radioLoad() {
 
 /* ====== sumber: Audius ====== */
 const AUD = 'https://api.audius.co/v1';
-const AGEN = [['', 'Tren minggu ini'], ['Electronic', 'Electronic'], ['Hip-Hop/Rap', 'Hip-Hop'], ['Pop', 'Pop'], ['Rock', 'Rock'], ['Lo-Fi', 'Lo-Fi'], ['Acoustic', 'Akustik'], ['R&B/Soul', 'R&B']];
+const AGEN = [['', 'Tren minggu ini'], ['Electronic', 'Electronic'], ['Hip-Hop/Rap', 'Hip-Hop'], ['Pop', 'Pop'], ['Rock', 'Rock'], ['Lo-Fi', 'Lo-Fi'], ['Acoustic', 'Akustik'], ['R&B/Soul', 'R&B'], ['indonesia', 'Indonesia']];
 const A = { g: '', q: '', list: [] };
 const audTrack = d => ({ k: 'audius:' + d.id, s: 'audius', t: d.title, a: d.user && d.user.name, img: d.artwork && (d.artwork['480x480'] || d.artwork['150x150'] || d.artwork['1000x1000']) || '', url: `${AUD}/tracks/${d.id}/stream?app_name=${APP}`, d: d.duration });
 function initAudius() {
@@ -538,7 +538,8 @@ function initAudius() {
 }
 async function audLoad() {
   const box = $('#aL'); box.innerHTML = spinner();
-  const url = A.q ? `${AUD}/tracks/search?query=${encodeURIComponent(A.q)}&limit=100&app_name=${APP}` : `${AUD}/tracks/trending?time=week&limit=100${A.g ? '&genre=' + encodeURIComponent(A.g) : ''}&app_name=${APP}`;
+  const q = A.q || (A.g === 'indonesia' ? 'indonesia' : '');
+  const url = q ? `${AUD}/tracks/search?query=${encodeURIComponent(q)}&limit=100&app_name=${APP}` : `${AUD}/tracks/trending?time=week&limit=100${A.g ? '&genre=' + encodeURIComponent(A.g) : ''}&app_name=${APP}`;
   try {
     const j = await jget(url);
     A.list = (j.data || []).filter(d => d && d.id && d.is_streamable !== false).map(audTrack);

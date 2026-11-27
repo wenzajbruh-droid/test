@@ -311,7 +311,7 @@ function onAudioError() {
   if (!P.cur) return;
   P.errRun++;
   toast(P.cur.s === 'radio' ? 'Stasiun ini tidak bisa diputar' : 'Lagu ini tidak bisa diputar');
-  if (P.q.length > 1 && P.errRun < P.q.length) setTimeout(() => step(1, true), 700); else setPlayingUi(false);
+  if (P.q.length > 1 && P.errRun < 3) setTimeout(() => step(1, true), 700); else setPlayingUi(false);
 }
 function step(dir, auto) {
   const n = P.q.length; if (!n) return;

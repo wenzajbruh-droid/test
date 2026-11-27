@@ -1,0 +1,716 @@
+<!doctype html>
+<html lang="id">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#101216">
+<meta name="color-scheme" content="dark">
+<title>Nada — Musik gratis</title>
+<style>
+:root{--bg:#101216;--p1:#181b21;--p2:#20242b;--ln:#2e333c;--ink:#eef0f3;--ink2:#a2a9b4;--ink3:#6c7480;--ac:#ff7a59;--ac2:#2b1710;--ok:#5ad19a;--err:#ff8a78;--nav:60px;--mini:64px;
+--st:env(safe-area-inset-top,0px);--sb:env(safe-area-inset-bottom,0px);color-scheme:dark}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{margin:0;height:100%;background:var(--bg);color:var(--ink);font:450 15px/1.4 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;overflow:hidden;overflow-wrap:anywhere}
+button,input,select{font:inherit;color:inherit}button{cursor:pointer;background:none;border:0;padding:0}
+[hidden]{display:none!important}
+svg.i{width:22px;height:22px;flex:none;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+svg.i.f{fill:currentColor;stroke:none}
+:focus-visible{outline:2px solid var(--ac);outline-offset:2px}
+#app{position:fixed;inset:0;display:flex;flex-direction:column;max-width:560px;margin:0 auto}
+header.top{display:flex;align-items:center;gap:4px;padding:calc(8px + var(--st)) 12px 6px 16px}
+header.top h1{flex:1;margin:0;font-size:22px;font-weight:800;letter-spacing:-.01em}
+header.top h1 span{color:var(--ac)}
+.ib{width:44px;height:44px;display:grid;place-items:center;border-radius:12px;color:var(--ink2)}
+.ib:active{background:var(--p2);color:var(--ink)}
+.ib[aria-pressed=true]{color:var(--ac)}
+main{flex:1;min-height:0;position:relative}
+.page{position:absolute;inset:0;overflow-y:auto;padding:4px 16px calc(var(--nav) + var(--mini) + var(--sb) + 20px);overscroll-behavior:contain}
+.page.noMini{padding-bottom:calc(var(--nav) + var(--sb) + 20px)}
+.sub{margin:2px 0 12px;color:var(--ink2);font-size:13.5px}
+.search{display:flex;gap:8px;margin:0 0 10px}
+.txt{flex:1;min-width:0;height:46px;padding:0 14px;background:var(--p1);border:1px solid var(--ln);border-radius:12px}
+.txt::placeholder{color:var(--ink3)}
+.btn{height:46px;padding:0 16px;border-radius:12px;background:var(--p2);border:1px solid var(--ln);font-weight:650;display:inline-flex;align-items:center;justify-content:center;gap:8px}
+.btn:active{background:var(--ln)}.btn.pri{background:var(--ac);border-color:var(--ac);color:#1d0d06}
+.btn.sm{height:38px;font-size:13.5px;padding:0 12px}
+.chips{display:flex;gap:8px;overflow-x:auto;margin:0 -16px 12px;padding:0 16px;scrollbar-width:none}
+.chips::-webkit-scrollbar{display:none}
+.chip{flex:none;height:36px;padding:0 14px;border-radius:99px;border:1px solid var(--ln);background:var(--p1);color:var(--ink2);font-weight:600;font-size:13.5px}
+.chip[aria-pressed=true]{background:var(--ac);border-color:var(--ac);color:#1d0d06}
+.list{display:flex;flex-direction:column}
+.row{display:flex;align-items:center;gap:12px;min-height:64px;padding:6px 0;border-bottom:1px solid var(--ln);position:relative}
+.row .go{flex:1;min-width:0;display:flex;align-items:center;gap:12px;text-align:left;align-self:stretch}
+.art{width:48px;height:48px;flex:none;border-radius:8px;background:var(--p2) center/cover no-repeat;display:grid;place-items:center;color:var(--ink3);overflow:hidden}
+.art svg{width:22px;height:22px}
+.meta{min-width:0;flex:1}
+.meta b{display:block;font-weight:650;font-size:15px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.meta span{display:block;color:var(--ink2);font-size:13px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.row.cur .meta b{color:var(--ac)}
+.row .more{width:40px;height:40px;display:grid;place-items:center;color:var(--ink3);border-radius:10px}
+.row .more:active{background:var(--p2)}
+.empty{padding:28px 8px;text-align:center;color:var(--ink2)}
+.empty b{display:block;color:var(--ink);margin-bottom:4px}
+.err{color:var(--err);padding:12px 0}
+.note{background:var(--p1);border:1px solid var(--ln);border-radius:12px;padding:12px 14px;color:var(--ink2);font-size:13.5px;margin:0 0 12px}
+.note b{color:var(--ink)}.note a{color:var(--ac)}
+.spin{display:block;width:26px;height:26px;margin:28px auto;border:3px solid var(--ln);border-top-color:var(--ac);border-radius:50%;animation:sp .8s linear infinite}
+@keyframes sp{to{transform:rotate(360deg)}}
+.h2{margin:18px 0 6px;font-size:13px;font-weight:700;color:var(--ink2);letter-spacing:.04em;text-transform:uppercase}
+/* yt / spotify */
+.ytbox{position:relative;width:100%;aspect-ratio:16/9;background:#000;border-radius:12px;overflow:hidden;margin-bottom:10px}
+.ytbox iframe,.ytbox>div{position:absolute;inset:0;width:100%;height:100%;border:0}
+.ytnow{font-weight:650;margin:0 0 10px}
+.spembed{width:100%;border:0;border-radius:12px;margin-bottom:12px;background:var(--p1)}
+/* mini */
+#mini{position:absolute;left:8px;right:8px;bottom:calc(var(--nav) + var(--sb) + 6px);height:var(--mini);display:flex;align-items:center;gap:10px;padding:0 6px 0 8px;background:var(--p2);border:1px solid var(--ln);border-radius:14px;z-index:5;box-shadow:0 6px 20px rgba(0,0,0,.4);overflow:hidden}
+#mini .go{flex:1;min-width:0;display:flex;align-items:center;gap:10px;text-align:left;align-self:stretch}
+#mini .art{width:44px;height:44px}
+#mini .bar{position:absolute;left:0;bottom:0;height:2px;background:var(--ac);width:0}
+/* nav */
+#nav{position:absolute;left:0;right:0;bottom:0;display:grid;grid-template-columns:repeat(5,1fr);padding-bottom:var(--sb);background:var(--p1);border-top:1px solid var(--ln);z-index:6}
+#nav button{height:var(--nav);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;font-size:11.5px;font-weight:600;color:var(--ink3)}
+#nav button[aria-selected=true]{color:var(--ac)}
+/* now playing */
+#np{position:fixed;inset:0;z-index:30;background:var(--bg);display:flex;flex-direction:column;align-items:center;transform:translateY(102%);transition:transform .28s cubic-bezier(.2,.8,.2,1);visibility:hidden;overflow:hidden}
+#np.open{transform:none;visibility:visible}
+#np .bgi{position:absolute;inset:-40px;background:center/cover;filter:blur(46px) saturate(1.3);opacity:.35;pointer-events:none}
+#np .in{position:relative;width:100%;max-width:560px;flex:1;min-height:0;display:flex;flex-direction:column;padding:calc(8px + var(--st)) 22px calc(18px + var(--sb))}
+#np .top{display:flex;align-items:center;justify-content:space-between}
+#np .cover{flex:1;min-height:120px;display:grid;place-items:center;padding:8px 0}
+#np .cover .art{width:min(100%,46dvh);height:auto;aspect-ratio:1;border-radius:16px;box-shadow:0 14px 40px rgba(0,0,0,.5)}
+#np .cover .art svg{width:64px;height:64px}
+#np h2{margin:0;font-size:22px;line-height:1.2;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+#np .ar{color:var(--ink2);margin:2px 0 12px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.tl{display:flex;align-items:center;gap:10px;font-size:12px;color:var(--ink2);font-variant-numeric:tabular-nums}
+.tl span{width:42px}.tl span:last-child{text-align:right}
+input[type=range]{-webkit-appearance:none;appearance:none;flex:1;height:30px;margin:0;background:transparent;touch-action:pan-y}
+input[type=range]::-webkit-slider-runnable-track{height:4px;border-radius:2px;background:linear-gradient(to right,var(--ac) var(--p,0%),var(--ln) var(--p,0%))}
+input[type=range]::-moz-range-track{height:4px;border-radius:2px;background:var(--ln)}
+input[type=range]::-moz-range-progress{height:4px;border-radius:2px;background:var(--ac)}
+input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:16px;height:16px;margin-top:-6px;border-radius:50%;background:var(--ink);border:0}
+input[type=range]::-moz-range-thumb{width:16px;height:16px;border-radius:50%;background:var(--ink);border:0}
+.ctl{display:flex;align-items:center;justify-content:space-between;margin-top:6px}
+.ctl .ib{width:50px;height:50px}.ctl .ib svg{width:26px;height:26px}
+.ctl .play{width:68px;height:68px;border-radius:50%;background:var(--ac);color:#1d0d06}
+.ctl .play svg{width:30px;height:30px}
+.pp .pl,.pp .pa{display:none}.pp[data-s=play] .pa{display:block}.pp[data-s=pause] .pl{display:block}
+.live{color:var(--ac);font-weight:700;letter-spacing:.06em}
+/* sheet */
+#shade{position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:40;opacity:0;pointer-events:none;transition:opacity .2s}
+#shade.on{opacity:1;pointer-events:auto}
+#sheet{position:fixed;left:0;right:0;bottom:0;z-index:41;max-width:560px;margin:0 auto;max-height:82dvh;display:flex;flex-direction:column;background:var(--p1);border-radius:18px 18px 0 0;border:1px solid var(--ln);border-bottom:0;transform:translateY(105%);transition:transform .25s cubic-bezier(.2,.8,.2,1);visibility:hidden}
+#sheet.on{transform:none;visibility:visible}
+#sheet .hd{display:flex;align-items:center;justify-content:space-between;padding:4px 6px 4px 18px;border-bottom:1px solid var(--ln)}
+#sheet .hd b{font-size:16px}
+#sheet .bd{overflow-y:auto;padding:12px 18px calc(18px + var(--sb));display:flex;flex-direction:column;gap:12px}
+.opt{display:flex;align-items:center;gap:12px;min-height:50px;width:100%;text-align:left;border-bottom:1px solid var(--ln)}
+.opt:last-child{border-bottom:0}
+.fld{display:flex;flex-direction:column;gap:6px}.fld label{font-size:13px;color:var(--ink2);font-weight:600}
+#toast{position:fixed;left:50%;bottom:calc(var(--nav) + var(--mini) + var(--sb) + 22px);transform:translate(-50%,8px);z-index:60;max-width:calc(100% - 32px);padding:10px 14px;border-radius:10px;background:var(--ink);color:#101216;font-weight:650;font-size:14px;opacity:0;pointer-events:none;transition:opacity .2s,transform .2s}
+#toast.on{opacity:1;transform:translate(-50%,0)}
+@media (prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
+</style>
+</head>
+<body>
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+<symbol id="i-play" viewBox="0 0 24 24"><path d="M8 5.2v13.6a.6.6 0 0 0 .92.5l10.6-6.8a.6.6 0 0 0 0-1L8.92 4.7A.6.6 0 0 0 8 5.2z"/></symbol>
+<symbol id="i-pause" viewBox="0 0 24 24"><path d="M7 5h3.4v14H7zM13.6 5H17v14h-3.4z"/></symbol>
+<symbol id="i-next" viewBox="0 0 24 24"><path d="M6 5.5v13l9-6.5zM17 5h2.2v14H17z"/></symbol>
+<symbol id="i-prev" viewBox="0 0 24 24"><path d="M18 5.5v13L9 12zM5 5h2.2v14H5z"/></symbol>
+<symbol id="i-radio" viewBox="0 0 24 24"><path d="M4 9h16v11H4zM8 9l9-5M8 14.5h4M16 14.5h.01M16 17.5h.01"/></symbol>
+<symbol id="i-wave" viewBox="0 0 24 24"><path d="M3 12h2M7 7v10M11 4v16M15 8v8M19 10v4M22 12h-1"/></symbol>
+<symbol id="i-vid" viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="14" rx="3"/><path d="M10 9.5v5l4.5-2.5z"/></symbol>
+<symbol id="i-sp" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M7.5 9.5c3-1 6.5-.7 9 .8M8 12.5c2.5-.8 5.3-.5 7.5.8M8.5 15.3c2-.5 4-.3 5.8.6"/></symbol>
+<symbol id="i-file" viewBox="0 0 24 24"><path d="M9 18V6l10-2v12M9 18a3 3 0 1 1-3-3 3 3 0 0 1 3 3zM19 16a3 3 0 1 1-3-3 3 3 0 0 1 3 3z"/></symbol>
+<symbol id="i-heart" viewBox="0 0 24 24"><path d="M12 20s-7.5-4.6-7.5-10A4.3 4.3 0 0 1 12 7.4 4.3 4.3 0 0 1 19.5 10C19.5 15.4 12 20 12 20z"/></symbol>
+<symbol id="i-down" viewBox="0 0 24 24"><path d="M6 9l6 6 6-6"/></symbol>
+<symbol id="i-q" viewBox="0 0 24 24"><path d="M4 7h12M4 12h12M4 17h8M18 14v6l4-3z"/></symbol>
+<symbol id="i-sh" viewBox="0 0 24 24"><path d="M3 7h3c5 0 6 10 11 10h4M3 17h3c1.6 0 2.8-.8 3.8-2M21 7h-4c-1.6 0-2.8.8-3.8 2M18.5 4.5L21 7l-2.5 2.5M18.5 14.5L21 17l-2.5 2.5"/></symbol>
+<symbol id="i-rp" viewBox="0 0 24 24"><path d="M4 11V9a3 3 0 0 1 3-3h13M17 3l3 3-3 3M20 13v2a3 3 0 0 1-3 3H4M7 21l-3-3 3-3"/></symbol>
+<symbol id="i-moon" viewBox="0 0 24 24"><path d="M20 14.5A8 8 0 0 1 9.5 4 8 8 0 1 0 20 14.5z"/></symbol>
+<symbol id="i-set" viewBox="0 0 24 24"><path d="M4 7h10M18 7h2M4 17h2M10 17h10M14 4v6M6 14v6"/></symbol>
+<symbol id="i-more" viewBox="0 0 24 24"><path d="M12 6h.01M12 12h.01M12 18h.01" stroke-width="3"/></symbol>
+<symbol id="i-x" viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18"/></symbol>
+<symbol id="i-search" viewBox="0 0 24 24"><circle cx="11" cy="11" r="6.5"/><path d="M16 16l4.5 4.5"/></symbol>
+<symbol id="i-plus" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></symbol>
+</svg>
+
+<div id="app">
+  <header class="top">
+    <h1>Nada<span>.</span></h1>
+    <button class="ib" id="bKoleksi" aria-label="Koleksi saya"><svg class="i"><use href="#i-heart"/></svg></button>
+    <button class="ib" id="bSet" aria-label="Pengaturan"><svg class="i"><use href="#i-set"/></svg></button>
+  </header>
+  <main>
+    <section class="page" id="p-radio" data-tab="radio"></section>
+    <section class="page" id="p-audius" data-tab="audius" hidden></section>
+    <section class="page" id="p-youtube" data-tab="youtube" hidden></section>
+    <section class="page" id="p-spotify" data-tab="spotify" hidden></section>
+    <section class="page" id="p-lokal" data-tab="lokal" hidden></section>
+    <section class="page" id="p-koleksi" data-tab="koleksi" hidden></section>
+    <div id="mini" hidden>
+      <button class="go" id="miniGo" aria-label="Buka pemutar"><span class="art" id="miniArt"></span><span class="meta"><b id="miniT"></b><span id="miniA"></span></span></button>
+      <button class="ib" id="miniPP" aria-label="Putar atau jeda" style="color:var(--ink)"><svg class="i f" id="miniIc"><use href="#i-play"/></svg></button>
+      <button class="ib" id="miniNx" aria-label="Lagu berikutnya" style="color:var(--ink)"><svg class="i f"><use href="#i-next"/></svg></button>
+      <i class="bar" id="miniBar"></i>
+    </div>
+  </main>
+  <nav id="nav" role="tablist" aria-label="Sumber musik"></nav>
+</div>
+
+<div id="np" aria-label="Sedang diputar" role="dialog">
+  <div class="bgi" id="npBg"></div>
+  <div class="in">
+    <div class="top"><button class="ib" id="npClose" aria-label="Tutup"><svg class="i"><use href="#i-down"/></svg></button>
+      <b style="color:var(--ink2);font-size:13px;letter-spacing:.05em" id="npSrc"></b>
+      <button class="ib" id="npMore" aria-label="Menu lagu"><svg class="i"><use href="#i-more"/></svg></button></div>
+    <div class="cover"><div class="art" id="npArt"></div></div>
+    <h2 id="npT">—</h2><div class="ar" id="npA"></div>
+    <div class="tl"><span id="tCur">0:00</span><input type="range" id="seek" min="0" max="1000" value="0" aria-label="Posisi lagu"><span id="tDur">0:00</span></div>
+    <div class="ctl">
+      <button class="ib" id="bShuf" aria-label="Acak" aria-pressed="false"><svg class="i"><use href="#i-sh"/></svg></button>
+      <button class="ib" id="bPrev" aria-label="Sebelumnya"><svg class="i f"><use href="#i-prev"/></svg></button>
+      <button class="ib play pp" id="bPlay" data-s="pause" aria-label="Putar atau jeda"><svg class="i f pl"><use href="#i-play"/></svg><svg class="i f pa"><use href="#i-pause"/></svg></button>
+      <button class="ib" id="bNext" aria-label="Berikutnya"><svg class="i f"><use href="#i-next"/></svg></button>
+      <button class="ib" id="bRep" aria-label="Ulangi: mati"><svg class="i"><use href="#i-rp"/></svg></button>
+    </div>
+    <div class="ctl" style="margin-top:2px">
+      <button class="ib" id="bLike" aria-label="Sukai" aria-pressed="false"><svg class="i"><use href="#i-heart"/></svg></button>
+      <button class="ib" id="bTimer" aria-label="Timer tidur"><svg class="i"><use href="#i-moon"/></svg></button>
+      <button class="ib" id="bQueue" aria-label="Antrean"><svg class="i"><use href="#i-q"/></svg></button>
+    </div>
+  </div>
+</div>
+
+<div id="shade"></div>
+<div id="sheet" role="dialog" aria-modal="true"><div class="hd"><b id="shT"></b><button class="ib" id="shX" aria-label="Tutup"><svg class="i"><use href="#i-x"/></svg></button></div><div class="bd" id="shB"></div></div>
+<div id="toast" role="status" aria-live="polite"></div>
+<audio id="au" preload="none" playsinline></audio>
+<input type="file" id="fileIn" accept="audio/*" multiple hidden>
+
+<script>
+'use strict';
+/* ====== util ====== */
+const $ = (s, r = document) => r.querySelector(s);
+const $$ = (s, r = document) => Array.from(r.querySelectorAll(s));
+const esc = s => String(s == null ? '' : s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+const clamp = (v, a, b) => Math.min(b, Math.max(a, v));
+const fmt = s => { if (!isFinite(s) || s < 0) return '0:00'; s = Math.floor(s); const h = Math.floor(s / 3600), m = Math.floor(s % 3600 / 60), x = s % 60; return (h ? h + ':' + String(m).padStart(2, '0') : m) + ':' + String(x).padStart(2, '0'); };
+const safeImg = u => /^(https?:|blob:|data:image\/)/i.test(u || '') ? u : '';
+const IC = n => `<svg class="i"><use href="#i-${n}"/></svg>`;
+const APP = 'NadaMusik';
+let toastT = 0;
+function toast(m) { const t = $('#toast'); t.textContent = m; t.classList.add('on'); clearTimeout(toastT); toastT = setTimeout(() => t.classList.remove('on'), 2600); }
+const LS = {
+  get(k, d) { try { const v = localStorage.getItem('nada.' + k); return v == null ? d : JSON.parse(v); } catch (_) { return d; } },
+  set(k, v) { try { localStorage.setItem('nada.' + k, JSON.stringify(v)); } catch (_) { /* penyimpanan penuh/diblokir */ } }
+};
+async function jget(url, ms = 12000) {
+  const c = new AbortController(), t = setTimeout(() => c.abort(), ms);
+  try { const r = await fetch(url, { signal: c.signal }); if (!r.ok) throw new Error('HTTP ' + r.status); return await r.json(); }
+  finally { clearTimeout(t); }
+}
+const spinner = () => '<i class="spin" role="progressbar" aria-label="Memuat"></i>';
+function artStyle(img) { const u = safeImg(img); return u ? `style="background-image:url('${u.replace(/'/g, '%27')}')"` : ''; }
+const artHtml = (img, ic = 'file') => `<span class="art" ${artStyle(img)}>${safeImg(img) ? '' : IC(ic)}</span>`;
+
+/* ====== lapisan (tombol Kembali Android menutup sheet) ====== */
+const layers = [];
+function pushLayer(close) { layers.push(close); try { history.pushState({ nada: layers.length }, ''); } catch (_) { /* iframe tanpa riwayat */ } }
+function popLayerUI() { const c = layers.pop(); if (c) { c(); try { if (history.state && history.state.nada) history.back(); } catch (_) { } } }
+addEventListener('popstate', () => { const c = layers.pop(); if (c) c(); });
+
+/* ====== state ====== */
+const ST = {
+  likes: LS.get('likes', []), lists: LS.get('lists', []), hist: LS.get('hist', []),
+  pref: Object.assign({ vol: 1, shuf: false, rep: 'off', tab: 'radio', ytKey: '', yt: [], sp: [] }, LS.get('pref', {})),
+};
+const saveLikes = () => LS.set('likes', ST.likes), saveLists = () => LS.set('lists', ST.lists), savePref = () => LS.set('pref', ST.pref);
+const keyOf = t => t.k;
+const isLiked = t => t && ST.likes.some(x => x.k === t.k);
+
+/* ====== IndexedDB untuk file lokal ====== */
+const DB = {
+  db: null,
+  open() {
+    if (this.db) return Promise.resolve(this.db);
+    return new Promise((ok, no) => {
+      let rq; try { rq = indexedDB.open('nada', 1); } catch (e) { return no(e); }
+      rq.onupgradeneeded = () => rq.result.createObjectStore('files', { keyPath: 'id', autoIncrement: true });
+      rq.onsuccess = () => { this.db = rq.result; ok(this.db); };
+      rq.onerror = () => no(rq.error);
+    });
+  },
+  async tx(mode, fn) { const db = await this.open(); return new Promise((ok, no) => { const t = db.transaction('files', mode), s = t.objectStore('files'), r = fn(s); t.oncomplete = () => ok(r && r.result); t.onerror = () => no(t.error); t.onabort = () => no(t.error); }); },
+  add(rec) { return this.tx('readwrite', s => s.add(rec)); },
+  all() { return this.tx('readonly', s => s.getAll()); },
+  get(id) { return this.tx('readonly', s => s.get(id)); },
+  del(id) { return this.tx('readwrite', s => s.delete(id)); },
+};
+/* ID3v2: judul, artis, sampul */
+async function readId3(file) {
+  const out = {};
+  try {
+    const buf = new Uint8Array(await file.slice(0, 1.5 * 1024 * 1024).arrayBuffer());
+    if (buf[0] !== 0x49 || buf[1] !== 0x44 || buf[2] !== 0x33) return out;
+    const ver = buf[3], size = ((buf[6] & 127) << 21) | ((buf[7] & 127) << 14) | ((buf[8] & 127) << 7) | (buf[9] & 127);
+    const end = Math.min(buf.length, 10 + size);
+    const dec = (b, enc) => { try { return new TextDecoder(enc === 1 ? 'utf-16' : enc === 2 ? 'utf-16be' : enc === 3 ? 'utf-8' : 'iso-8859-1').decode(b).replace(/\0+$/g, '').replace(/^﻿/, '').trim(); } catch (_) { return ''; } };
+    let p = 10;
+    while (p + 10 < end) {
+      const id = String.fromCharCode(buf[p], buf[p + 1], buf[p + 2], buf[p + 3]);
+      if (!/^[A-Z0-9]{4}$/.test(id)) break;
+      const sz = ver === 4 ? ((buf[p + 4] & 127) << 21) | ((buf[p + 5] & 127) << 14) | ((buf[p + 6] & 127) << 7) | (buf[p + 7] & 127) : (buf[p + 4] * 16777216) + (buf[p + 5] << 16) + (buf[p + 6] << 8) + buf[p + 7];
+      const body = buf.subarray(p + 10, p + 10 + sz);
+      if (id === 'TIT2') out.t = dec(body.subarray(1), body[0]);
+      else if (id === 'TPE1') out.a = dec(body.subarray(1), body[0]);
+      else if (id === 'APIC' && sz < 1.2e6) {
+        const enc = body[0]; let i = 1; while (i < body.length && body[i]) i++; const mime = String.fromCharCode(...body.subarray(1, i)) || 'image/jpeg';
+        i += 2; if (enc === 1 || enc === 2) { while (i + 1 < body.length && (body[i] || body[i + 1])) i += 2; i += 2; } else { while (i < body.length && body[i]) i++; i++; }
+        if (i < body.length) out.img = new Blob([body.slice(i)], { type: /^image\//.test(mime) ? mime : 'image/jpeg' });
+      }
+      p += 10 + sz;
+    }
+  } catch (_) { /* tag rusak: abaikan */ }
+  return out;
+}
+const localUrls = new Map();
+async function localTrackUrl(t) {
+  if (localUrls.has(t.lid)) return localUrls.get(t.lid);
+  const rec = await DB.get(t.lid); if (!rec) throw new Error('File tidak ditemukan');
+  const u = URL.createObjectURL(rec.blob); localUrls.set(t.lid, u); return u;
+}
+const trackFromRec = r => ({ k: 'lokal:' + r.id, s: 'lokal', lid: r.id, t: r.t || r.name.replace(/\.[^.]+$/, ''), a: r.a || 'File di perangkat', img: r.img ? (localUrls.get('img' + r.id) || (localUrls.set('img' + r.id, URL.createObjectURL(r.img)), localUrls.get('img' + r.id))) : '' });
+
+/* ====== pemutar audio ====== */
+const au = $('#au');
+const P = { q: [], i: -1, order: [], playing: false, errRun: 0, cur: null, sleep: null, mode: 'audio' };
+au.volume = clamp(+ST.pref.vol || 1, 0, 1);
+const SRC_LABEL = { radio: 'RADIO', audius: 'AUDIUS', lokal: 'FILE LOKAL', youtube: 'YOUTUBE' };
+function reorder(keepCurrent) {
+  const n = P.q.length, idx = [...Array(n).keys()];
+  if (ST.pref.shuf) { for (let i = n - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [idx[i], idx[j]] = [idx[j], idx[i]]; } if (keepCurrent && P.i >= 0) { const k = idx.indexOf(P.i); idx.splice(k, 1); idx.unshift(P.i); } }
+  P.order = idx;
+}
+async function playList(list, start = 0) {
+  ytPause(); P.q = list.slice(); P.i = clamp(start, 0, P.q.length - 1); reorder(true); await loadCurrent();
+}
+async function playOne(t) { return playList([t], 0); }
+async function loadCurrent() {
+  const t = P.q[P.i]; if (!t) return;
+  P.cur = t; renderNow(); pushHist(t);
+  try {
+    let url = t.url;
+    if (t.s === 'lokal') url = await localTrackUrl(t);
+    if (t.s === 'radio') { fetch('https://de1.api.radio-browser.info/json/url/' + encodeURIComponent(t.sid || ''), { mode: 'no-cors' }).catch(() => { }); }
+    au.src = url; au.load();
+    await au.play(); P.errRun = 0;
+  } catch (e) { if (e && e.name === 'NotAllowedError') { setPlayingUi(false); toast('Ketuk putar untuk memulai'); } else onAudioError(); }
+}
+function onAudioError() {
+  if (!P.cur) return;
+  P.errRun++;
+  toast(P.cur.s === 'radio' ? 'Stasiun ini tidak bisa diputar' : 'Lagu ini tidak bisa diputar');
+  if (P.q.length > 1 && P.errRun < P.q.length) setTimeout(() => step(1, true), 700); else setPlayingUi(false);
+}
+function step(dir, auto) {
+  const n = P.q.length; if (!n) return;
+  let pos = P.order.indexOf(P.i) + dir;
+  if (pos >= n || pos < 0) {
+    if (auto && ST.pref.rep === 'off' && dir > 0) { setPlayingUi(false); au.pause(); return; }
+    if (ST.pref.shuf && dir > 0) reorder(false);
+    pos = (pos + n) % n;
+  }
+  P.i = P.order[pos]; loadCurrent();
+}
+function toggle() {
+  if (!P.cur) return;
+  if (au.paused) { au.play().catch(() => toast('Tidak bisa memutar')); } else au.pause();
+}
+au.addEventListener('play', () => setPlayingUi(true));
+au.addEventListener('pause', () => setPlayingUi(false));
+au.addEventListener('error', onAudioError);
+au.addEventListener('ended', () => { if (ST.pref.rep === 'one') { au.currentTime = 0; au.play(); } else if (P.sleep && P.sleep.endOfTrack) { sleepClear(); au.pause(); } else step(1, true); });
+au.addEventListener('timeupdate', updProg);
+au.addEventListener('loadedmetadata', updProg);
+au.addEventListener('durationchange', updProg);
+function setPlayingUi(on) {
+  P.playing = on;
+  $('#bPlay').dataset.s = on ? 'play' : 'pause';
+  $('#miniIc').innerHTML = `<use href="#i-${on ? 'pause' : 'play'}"/>`;
+  if ('mediaSession' in navigator) navigator.mediaSession.playbackState = on ? 'playing' : 'paused';
+  $$('.row.cur').forEach(r => r.classList.toggle('playing', on));
+  announce();
+}
+function isLive() { return P.cur && (P.cur.live || au.duration === Infinity); }
+function updProg() {
+  const live = isLive(), d = live ? 0 : (isFinite(au.duration) && au.duration > 0 ? au.duration : (P.cur && P.cur.d) || 0), c = au.currentTime || 0;
+  $('#seek').disabled = live || !d;
+  $('#tCur').textContent = live ? '' : fmt(c);
+  $('#tDur').innerHTML = live ? '<b class="live">LIVE</b>' : fmt(d);
+  const pc = d ? clamp(c / d, 0, 1) * 100 : 0;
+  if (!seeking) { $('#seek').value = Math.round(pc * 10); $('#seek').style.setProperty('--p', pc + '%'); }
+  $('#miniBar').style.width = pc + '%';
+  if ('mediaSession' in navigator && d && !live) { try { navigator.mediaSession.setPositionState({ duration: d, position: clamp(c, 0, d), playbackRate: au.playbackRate || 1 }); } catch (_) { } }
+}
+let seeking = false;
+$('#seek').addEventListener('input', e => { seeking = true; const d = au.duration || (P.cur && P.cur.d) || 0; $('#seek').style.setProperty('--p', e.target.value / 10 + '%'); $('#tCur').textContent = fmt(d * e.target.value / 1000); });
+$('#seek').addEventListener('change', e => { const d = au.duration || (P.cur && P.cur.d) || 0; if (d) au.currentTime = d * e.target.value / 1000; seeking = false; });
+
+function renderNow() {
+  const t = P.cur; if (!t) return;
+  $('#mini').hidden = false; $$('.page').forEach(p => p.classList.remove('noMini'));
+  $('#miniT').textContent = t.t; $('#miniA').textContent = t.a || '';
+  const ai = safeImg(t.img);
+  $('#miniArt').style.backgroundImage = ai ? `url('${ai}')` : ''; $('#miniArt').innerHTML = ai ? '' : IC('file');
+  $('#npArt').style.backgroundImage = ai ? `url('${ai}')` : ''; $('#npArt').innerHTML = ai ? '' : IC(t.s === 'radio' ? 'radio' : 'file');
+  $('#npBg').style.backgroundImage = ai ? `url('${ai}')` : '';
+  $('#npT').textContent = t.t; $('#npA').textContent = t.a || ''; $('#npSrc').textContent = SRC_LABEL[t.s] || '';
+  syncLike(); updProg();
+  $$('.row[data-k]').forEach(r => r.classList.toggle('cur', r.dataset.k === t.k));
+  if ('mediaSession' in navigator) {
+    try { navigator.mediaSession.metadata = new MediaMetadata({ title: t.t, artist: t.a || '', album: SRC_LABEL[t.s] || 'Nada', artwork: ai && !ai.startsWith('data:') ? [{ src: ai, sizes: '512x512' }] : [] }); } catch (_) { }
+  }
+  announce();
+}
+if ('mediaSession' in navigator) {
+  const set = (a, f) => { try { navigator.mediaSession.setActionHandler(a, f); } catch (_) { } };
+  set('play', () => { if (P.mode === 'audio') au.play(); }); set('pause', () => au.pause());
+  set('previoustrack', () => step(-1)); set('nexttrack', () => step(1));
+  set('seekto', d => { if (d.seekTime != null && isFinite(au.duration)) au.currentTime = d.seekTime; });
+  set('seekbackward', () => { au.currentTime = Math.max(0, au.currentTime - 10); }); set('seekforward', () => { au.currentTime += 10; });
+}
+function pushHist(t) { ST.hist = [t].concat(ST.hist.filter(x => x.k !== t.k)).slice(0, 40); LS.set('hist', ST.hist); }
+function syncLike() { const on = isLiked(P.cur); const b = $('#bLike'); b.setAttribute('aria-pressed', on); b.innerHTML = `<svg class="i${on ? ' f' : ''}"><use href="#i-heart"/></svg>`; }
+function toggleLike(t) {
+  if (!t) return;
+  if (isLiked(t)) ST.likes = ST.likes.filter(x => x.k !== t.k); else ST.likes.unshift(slim(t));
+  saveLikes(); syncLike(); if (curTab === 'koleksi') renderKoleksi();
+}
+const slim = t => ({ k: t.k, s: t.s, t: t.t, a: t.a, img: t.img && t.img.startsWith('blob:') ? '' : t.img, url: t.url, d: t.d, live: t.live, lid: t.lid, sid: t.sid });
+function announce() {
+  try { if (parent !== window) parent.postMessage({ nada: 'state', playing: P.playing, title: P.cur ? P.cur.t : '', artist: P.cur ? P.cur.a || '' : '', img: P.cur ? safeImg(P.cur.img) : '' }, '*'); } catch (_) { }
+}
+addEventListener('message', e => {
+  const m = e.data; if (!m || typeof m !== 'object' || !m.nadaCmd) return;
+  if (m.nadaCmd === 'toggle') toggle(); else if (m.nadaCmd === 'next') step(1); else if (m.nadaCmd === 'prev') step(-1);
+  else if (m.nadaCmd === 'tab' && TABS.some(t => t.id === m.tab)) setTab(m.tab);
+});
+
+/* kontrol Now Playing */
+$('#bPlay').onclick = $('#miniPP').onclick = toggle;
+$('#bNext').onclick = $('#miniNx').onclick = () => step(1);
+$('#bPrev').onclick = () => { if (au.currentTime > 4 && !isLive()) au.currentTime = 0; else step(-1); };
+$('#bShuf').onclick = () => { ST.pref.shuf = !ST.pref.shuf; savePref(); reorder(true); syncModes(); };
+$('#bRep').onclick = () => { ST.pref.rep = ST.pref.rep === 'off' ? 'all' : ST.pref.rep === 'all' ? 'one' : 'off'; savePref(); syncModes(); };
+function syncModes() {
+  $('#bShuf').setAttribute('aria-pressed', ST.pref.shuf);
+  const r = ST.pref.rep; $('#bRep').setAttribute('aria-pressed', r !== 'off'); $('#bRep').style.color = r === 'off' ? '' : 'var(--ac)';
+  $('#bRep').setAttribute('aria-label', 'Ulangi: ' + { off: 'mati', all: 'semua', one: 'satu lagu' }[r]);
+  $('#bRep').innerHTML = `<svg class="i"><use href="#i-rp"/></svg>${r === 'one' ? '<b style="position:absolute;font-size:10px;margin-top:1px">1</b>' : ''}`;
+  $('#bShuf').style.color = ST.pref.shuf ? 'var(--ac)' : '';
+}
+$('#bLike').onclick = () => toggleLike(P.cur);
+$('#miniGo').onclick = () => openNP();
+$('#npClose').onclick = () => popLayerUI();
+function openNP() { if (!P.cur) return; $('#np').classList.add('open'); pushLayer(() => $('#np').classList.remove('open')); $('#npClose').focus({ preventScroll: true }); }
+
+/* ====== sheet ====== */
+function openSheet(title, html, bind) {
+  closeSheetNow();
+  $('#shT').textContent = title; $('#shB').innerHTML = html; $('#shade').classList.add('on'); $('#sheet').classList.add('on');
+  if (bind) bind($('#shB'));
+  pushLayer(closeSheetNow);
+}
+function closeSheetNow() { $('#shade').classList.remove('on'); $('#sheet').classList.remove('on'); }
+$('#shX').onclick = $('#shade').onclick = () => { if ($('#sheet').classList.contains('on')) popLayerUI(); };
+
+function trackMenu(t) {
+  const items = [['antre', 'Putar berikutnya'], ['akhir', 'Tambah ke antrean'], ['like', isLiked(t) ? 'Hapus dari favorit' : 'Tambah ke favorit'], ['list', 'Tambah ke daftar putar']];
+  openSheet(t.t, items.map(([k, l]) => `<button class="opt" data-a="${k}">${esc(l)}</button>`).join(''), body => {
+    body.onclick = e => {
+      const a = e.target.closest('[data-a]'); if (!a) return; const k = a.dataset.a;
+      if (k === 'like') { toggleLike(t); popLayerUI(); renderCur(); }
+      else if (k === 'antre' || k === 'akhir') { if (!P.q.length) { playOne(t); } else { const at = k === 'antre' ? P.i + 1 : P.q.length; P.q.splice(at, 0, t); reorder(true); toast('Ditambahkan ke antrean'); } popLayerUI(); }
+      else if (k === 'list') { popLayerUI(); setTimeout(() => pickList(t), 280); }
+    };
+  });
+}
+function pickList(t) {
+  const rows = ST.lists.map((l, i) => `<button class="opt" data-i="${i}">${esc(l.name)} <span style="color:var(--ink3);margin-left:auto">${l.items.length}</span></button>`).join('');
+  openSheet('Tambah ke daftar putar', rows + `<div class="fld"><label for="nl">Daftar baru</label><div class="search"><input class="txt" id="nl" maxlength="40" placeholder="Nama daftar putar"><button class="btn pri" id="nlb">Buat</button></div></div>`, body => {
+    const add = i => { const l = ST.lists[i]; if (!l.items.some(x => x.k === t.k)) l.items.push(slim(t)); saveLists(); toast('Masuk ke "' + l.name + '"'); popLayerUI(); };
+    body.onclick = e => { const b = e.target.closest('[data-i]'); if (b) add(+b.dataset.i); };
+    $('#nlb', body).onclick = () => { const n = $('#nl', body).value.trim(); if (!n) return; ST.lists.push({ name: n, items: [] }); add(ST.lists.length - 1); };
+  });
+}
+$('#npMore').onclick = () => { if (P.cur) trackMenu(P.cur); };
+$('#bQueue').onclick = () => {
+  const rows = P.order.map(ix => { const t = P.q[ix]; return `<button class="opt" data-i="${ix}">${artHtml(t.img, t.s === 'radio' ? 'radio' : 'file')}<span class="meta"><b style="${ix === P.i ? 'color:var(--ac)' : ''}">${esc(t.t)}</b><span>${esc(t.a || '')}</span></span></button>`; }).join('');
+  openSheet('Antrean (' + P.q.length + ')', rows || '<div class="empty">Antrean kosong</div>', body => { body.onclick = e => { const b = e.target.closest('[data-i]'); if (b) { P.i = +b.dataset.i; loadCurrent(); popLayerUI(); } }; });
+};
+/* timer tidur */
+function sleepClear() { if (P.sleep) { clearTimeout(P.sleep.t); clearInterval(P.sleep.f); P.sleep = null; } $('#bTimer').style.color = ''; }
+function sleepSet(min) {
+  sleepClear(); if (!min) { toast('Timer tidur dimatikan'); return; }
+  if (min === 'end') { P.sleep = { endOfTrack: true }; toast('Berhenti setelah lagu ini'); }
+  else {
+    P.sleep = { t: setTimeout(() => { const v0 = au.volume; let v = v0; P.sleep.f = setInterval(() => { v -= v0 / 12; if (v <= 0) { clearInterval(P.sleep.f); au.pause(); ytPause(); au.volume = v0; P.sleep = null; $('#bTimer').style.color = ''; } else au.volume = v; }, 250); }, min * 60000) };
+    toast('Berhenti dalam ' + min + ' menit');
+  }
+  $('#bTimer').style.color = 'var(--ac)';
+}
+$('#bTimer').onclick = () => openSheet('Timer tidur', [[15, '15 menit'], [30, '30 menit'], [45, '45 menit'], [60, '1 jam'], ['end', 'Setelah lagu ini'], [0, 'Matikan']].map(([v, l]) => `<button class="opt" data-v="${v}">${l}</button>`).join(''), body => { body.onclick = e => { const b = e.target.closest('[data-v]'); if (b) { const v = b.dataset.v; sleepSet(v === 'end' ? 'end' : +v); popLayerUI(); } }; });
+
+/* ====== daftar lagu (dipakai semua sumber) ====== */
+let curList = new Map();
+function trackRow(t, list, i, opts = {}) {
+  curList.set(t.k, t);
+  return `<div class="row${P.cur && P.cur.k === t.k ? ' cur' : ''}" data-k="${esc(t.k)}"><button class="go" data-play="${i}">${artHtml(t.img, t.s === 'radio' ? 'radio' : 'file')}<span class="meta"><b>${esc(t.t)}</b><span>${esc(t.a || '')}${t.d ? ' · ' + fmt(t.d) : ''}</span></span></button>${opts.del ? `<button class="more" data-del="${i}" aria-label="Hapus">${IC('x')}</button>` : ''}<button class="more" data-more="${esc(t.k)}" aria-label="Menu">${IC('more')}</button></div>`;
+}
+function bindList(root, list, opts = {}) {
+  root.onclick = e => {
+    const pl = e.target.closest('[data-play]'), mo = e.target.closest('[data-more]'), de = e.target.closest('[data-del]');
+    if (pl) playList(list, +pl.dataset.play);
+    else if (mo) { const t = curList.get(mo.dataset.more); if (t) trackMenu(t); }
+    else if (de && opts.onDel) opts.onDel(+de.dataset.del);
+  };
+}
+const renderCur = () => { if (curTab === 'koleksi') renderKoleksi(); };
+
+/* ====== sumber: Radio ====== */
+const RADIO_HOSTS = ['https://de1.api.radio-browser.info', 'https://nl1.api.radio-browser.info', 'https://at1.api.radio-browser.info'];
+async function radioFetch(path) {
+  let err;
+  for (const h of RADIO_HOSTS) { try { return await jget(h + path); } catch (e) { err = e; } }
+  throw err;
+}
+const stationToTrack = s => ({ k: 'radio:' + s.stationuuid, s: 'radio', sid: s.stationuuid, t: s.name.trim() || 'Stasiun radio', a: [s.country, (s.tags || '').split(',').slice(0, 2).join(', ')].filter(Boolean).join(' · '), img: s.favicon || '', url: s.url_resolved || s.url, live: true });
+const R = { chip: 'ID', q: '', list: [] };
+const RCHIPS = [['ID', 'Populer di Indonesia', 'countrycode=ID'], ['pop', 'Pop', 'countrycode=ID&tag=pop'], ['dangdut', 'Dangdut', 'tag=dangdut'], ['rock', 'Rock', 'countrycode=ID&tag=rock'], ['news', 'Berita', 'countrycode=ID&tag=news'], ['jazz', 'Jazz', 'tag=jazz'], ['world', 'Dunia', '']];
+function initRadio() {
+  const p = $('#p-radio');
+  p.innerHTML = `<p class="sub">Radio langsung dari seluruh dunia, gratis dan legal.</p>
+  <form class="search" id="rF"><input class="txt" id="rQ" type="search" placeholder="Cari stasiun (mis. Prambors)" aria-label="Cari stasiun radio"><button class="btn pri" aria-label="Cari">${IC('search')}</button></form>
+  <div class="chips" id="rC">${RCHIPS.map(c => `<button class="chip" data-c="${c[0]}" aria-pressed="${c[0] === R.chip}">${c[1]}</button>`).join('')}</div><div id="rL" class="list"></div>`;
+  $('#rF').onsubmit = e => { e.preventDefault(); R.q = $('#rQ').value.trim(); R.chip = ''; $$('#rC .chip').forEach(c => c.setAttribute('aria-pressed', false)); radioLoad(); };
+  $('#rC').onclick = e => { const c = e.target.closest('.chip'); if (!c) return; R.chip = c.dataset.c; R.q = ''; $('#rQ').value = ''; $$('#rC .chip').forEach(x => x.setAttribute('aria-pressed', x === c)); radioLoad(); };
+  radioLoad();
+}
+async function radioLoad() {
+  const box = $('#rL'); box.innerHTML = spinner();
+  const https = location.protocol === 'https:' ? '&is_https=true' : '';
+  let qs = 'hidebroken=true&order=clickcount&reverse=true&limit=200' + https;
+  if (R.q) qs += '&name=' + encodeURIComponent(R.q); else { const c = RCHIPS.find(x => x[0] === R.chip); if (c && c[2]) qs += '&' + c[2]; }
+  try {
+    let data = await radioFetch('/json/stations/search?' + qs);
+    data = data.filter(s => (s.url_resolved || s.url) && !s.hls && (location.protocol !== 'https:' || /^https:/i.test(s.url_resolved || s.url)));
+    R.list = data.map(stationToTrack);
+    box.innerHTML = R.list.length ? R.list.map((t, i) => trackRow(t, R.list, i)).join('') : '<div class="empty"><b>Tidak ada stasiun</b>Coba kata kunci lain.</div>';
+    bindList(box, R.list);
+  } catch (e) { box.innerHTML = `<div class="err">Tidak bisa terhubung ke direktori radio. Periksa koneksi internet.<br><button class="btn sm" id="rR" style="margin-top:10px">Coba lagi</button></div>`; $('#rR').onclick = radioLoad; }
+}
+
+/* ====== sumber: Audius ====== */
+const AUD = 'https://api.audius.co/v1';
+const AGEN = [['', 'Tren minggu ini'], ['Electronic', 'Electronic'], ['Hip-Hop/Rap', 'Hip-Hop'], ['Pop', 'Pop'], ['Rock', 'Rock'], ['Lo-Fi', 'Lo-Fi'], ['Acoustic', 'Akustik'], ['R&B/Soul', 'R&B']];
+const A = { g: '', q: '', list: [] };
+const audTrack = d => ({ k: 'audius:' + d.id, s: 'audius', t: d.title, a: d.user && d.user.name, img: d.artwork && (d.artwork['480x480'] || d.artwork['150x150'] || d.artwork['1000x1000']) || '', url: `${AUD}/tracks/${d.id}/stream?app_name=${APP}`, d: d.duration });
+function initAudius() {
+  $('#p-audius').innerHTML = `<p class="sub">Musik dari artis independen di Audius. Gratis untuk didengar.</p>
+  <form class="search" id="aF"><input class="txt" id="aQ" type="search" placeholder="Cari judul atau artis" aria-label="Cari di Audius"><button class="btn pri" aria-label="Cari">${IC('search')}</button></form>
+  <div class="chips" id="aC">${AGEN.map(c => `<button class="chip" data-g="${esc(c[0])}" aria-pressed="${c[0] === A.g}">${c[1]}</button>`).join('')}</div><div id="aL" class="list"></div>`;
+  $('#aF').onsubmit = e => { e.preventDefault(); A.q = $('#aQ').value.trim(); $$('#aC .chip').forEach(c => c.setAttribute('aria-pressed', false)); audLoad(); };
+  $('#aC').onclick = e => { const c = e.target.closest('.chip'); if (!c) return; A.g = c.dataset.g; A.q = ''; $('#aQ').value = ''; $$('#aC .chip').forEach(x => x.setAttribute('aria-pressed', x === c)); audLoad(); };
+  audLoad();
+}
+async function audLoad() {
+  const box = $('#aL'); box.innerHTML = spinner();
+  const url = A.q ? `${AUD}/tracks/search?query=${encodeURIComponent(A.q)}&limit=100&app_name=${APP}` : `${AUD}/tracks/trending?time=week&limit=100${A.g ? '&genre=' + encodeURIComponent(A.g) : ''}&app_name=${APP}`;
+  try {
+    const j = await jget(url);
+    A.list = (j.data || []).filter(d => d && d.id && d.is_streamable !== false).map(audTrack);
+    box.innerHTML = A.list.length ? A.list.map((t, i) => trackRow(t, A.list, i)).join('') : '<div class="empty"><b>Tidak ditemukan</b>Coba kata kunci lain.</div>';
+    bindList(box, A.list);
+  } catch (e) { box.innerHTML = `<div class="err">Tidak bisa terhubung ke Audius (${esc(e.message)}).<br><button class="btn sm" id="aR" style="margin-top:10px">Coba lagi</button></div>`; $('#aR').onclick = audLoad; }
+}
+
+/* ====== sumber: file lokal ====== */
+const L = { list: [] };
+function initLokal() {
+  $('#p-lokal').innerHTML = `<p class="sub">Putar musik dari penyimpanan HP. File disimpan di browser ini dan tidak diunggah ke mana pun.</p>
+  <button class="btn pri" id="lAdd" style="width:100%">${IC('plus')} Tambah file musik</button><div id="lL" class="list" style="margin-top:12px"></div>`;
+  $('#lAdd').onclick = () => $('#fileIn').click();
+  lokalLoad();
+}
+$('#fileIn').onchange = async e => {
+  const files = Array.from(e.target.files || []); e.target.value = ''; if (!files.length) return;
+  let n = 0;
+  for (const f of files) {
+    if (!/^audio\//.test(f.type) && !/\.(mp3|m4a|aac|ogg|opus|wav|flac|weba)$/i.test(f.name)) continue;
+    try { const m = await readId3(f); await DB.add({ name: f.name, blob: f, t: m.t || '', a: m.a || '', img: m.img || null }); n++; } catch (_) { toast('Penyimpanan penuh atau diblokir'); break; }
+  }
+  if (n) toast(n + ' lagu ditambahkan'); lokalLoad();
+};
+async function lokalLoad() {
+  const box = $('#lL'); if (!box) return;
+  try { const all = await DB.all(); L.list = all.map(trackFromRec); }
+  catch (_) { box.innerHTML = '<div class="err">Penyimpanan browser tidak tersedia di sini (mode pribadi atau diblokir).</div>'; return; }
+  box.innerHTML = L.list.length ? L.list.map((t, i) => trackRow(t, L.list, i, { del: true })).join('') : '<div class="empty"><b>Belum ada lagu</b>Tekan "Tambah file musik" lalu pilih lagu dari HP.</div>';
+  bindList(box, L.list, { onDel: async i => { const t = L.list[i]; if (!t) return; if (P.cur && P.cur.k === t.k) { au.pause(); } await DB.del(t.lid); const u = localUrls.get(t.lid); if (u) { URL.revokeObjectURL(u); localUrls.delete(t.lid); } ST.likes = ST.likes.filter(x => x.k !== t.k); saveLikes(); lokalLoad(); } });
+}
+
+/* ====== sumber: YouTube (pemutar resmi, video harus terlihat) ====== */
+const Y = { player: null, ready: false, loading: null, list: [], i: -1, pending: null };
+function ytId(s) {
+  s = (s || '').trim();
+  let m = s.match(/(?:youtu\.be\/|[?&]v=|\/embed\/|\/shorts\/|\/live\/)([\w-]{11})/); if (m) return { v: m[1] };
+  m = s.match(/[?&]list=([\w-]{10,})/); if (m) return { list: m[1] };
+  if (/^[\w-]{11}$/.test(s)) return { v: s };
+  return null;
+}
+function ytLoadApi() {
+  if (Y.loading) return Y.loading;
+  Y.loading = new Promise((ok, no) => {
+    if (window.YT && YT.Player) return ok();
+    window.onYouTubeIframeAPIReady = ok;
+    const s = document.createElement('script'); s.src = 'https://www.youtube.com/iframe_api'; s.onerror = () => { Y.loading = null; no(new Error('offline')); }; document.head.appendChild(s);
+    setTimeout(() => { if (!(window.YT && YT.Player)) { Y.loading = null; no(new Error('timeout')); } }, 15000);
+  });
+  return Y.loading;
+}
+function ytPause() { try { if (Y.player && Y.ready) Y.player.pauseVideo(); } catch (_) { } }
+function initYoutube() {
+  const p = $('#p-youtube');
+  const okOrigin = /^https?:$/.test(location.protocol) || /^https?:/.test(document.referrer || '');
+  p.innerHTML = `<p class="sub">Pemutar resmi YouTube. Video harus tetap terlihat (aturan YouTube), jadi tidak berjalan di latar belakang.</p>
+  ${okOrigin ? '' : '<div class="note"><b>Catatan:</b> YouTube biasanya menolak diputar dari file lokal (Error 153). Kalau gagal, buka halaman ini lewat alamat https:// (hosting sendiri atau GitHub Pages).</div>'}
+  <div class="ytbox" id="ytBox"><div id="ytP"></div></div><p class="ytnow" id="ytNow" hidden></p>
+  <form class="search" id="yF"><input class="txt" id="yQ" type="search" placeholder="${ST.pref.ytKey ? 'Cari lagu atau tempel tautan' : 'Tempel tautan video/playlist YouTube'}" aria-label="Cari atau tempel tautan YouTube"><button class="btn pri">${ST.pref.ytKey ? 'Cari' : 'Putar'}</button></form>
+  ${ST.pref.ytKey ? '' : `<div class="note">Mau mencari lagu langsung di sini? Buat kunci API YouTube Data v3 gratis di Google Cloud Console, lalu masukkan di <b>Pengaturan</b>. Tanpa kunci, tempel saja tautan dari aplikasi YouTube.</div>`}
+  <div id="yL" class="list"></div>`;
+  $('#yF').onsubmit = e => { e.preventDefault(); const v = $('#yQ').value.trim(); if (!v) return; const id = ytId(v); if (id) ytAddLink(id, v); else if (ST.pref.ytKey) ytSearch(v); else toast('Tempel tautan YouTube yang valid'); };
+  ytRender();
+  $('#yL').onclick = e => {
+    const g = e.target.closest('[data-yi]'), d = e.target.closest('[data-yd]');
+    if (g) ytPlayAt(+g.dataset.yi); else if (d) { Y.list.splice(+d.dataset.yd, 1); ST.pref.yt = Y.list.filter(x => x.saved); savePref(); ytRender(); }
+  };
+  Y.list = ST.pref.yt.map(x => Object.assign({ saved: true }, x));
+  ytRender();
+}
+function ytRender() {
+  const box = $('#yL'); if (!box) return;
+  box.innerHTML = Y.list.length ? '<div class="h2">Daftar</div>' + Y.list.map((x, i) => `<div class="row${i === Y.i ? ' cur' : ''}"><button class="go" data-yi="${i}"><span class="art" ${artStyle(x.img)}>${x.img ? '' : IC('vid')}</span><span class="meta"><b>${esc(x.t || (x.list ? 'Playlist YouTube' : 'Video ' + x.v))}</b><span>${esc(x.a || (x.list ? 'Playlist' : 'YouTube'))}</span></span></button><button class="more" data-yd="${i}" aria-label="Hapus">${IC('x')}</button></div>`).join('') : '<div class="empty"><b>Belum ada video</b>Tempel tautan YouTube di atas untuk memutar.</div>';
+}
+function ytAddLink(id, raw) {
+  const item = id.v ? { v: id.v, t: '', a: '', img: `https://i.ytimg.com/vi/${id.v}/mqdefault.jpg`, saved: true } : { list: id.list, t: 'Playlist YouTube', a: 'Playlist', img: '', saved: true };
+  Y.list.push(item); ST.pref.yt = Y.list.filter(x => x.saved).map(({ saved, ...r }) => r).slice(-40); savePref(); $('#yQ').value = ''; ytPlayAt(Y.list.length - 1);
+}
+async function ytSearch(q) {
+  const box = $('#yL'); box.innerHTML = spinner();
+  try {
+    const j = await jget(`https://www.googleapis.com/youtube/v3/search?part=snippet&type=video&videoEmbeddable=true&maxResults=20&q=${encodeURIComponent(q)}&key=${encodeURIComponent(ST.pref.ytKey)}`);
+    if (j.error) throw new Error(j.error.message || 'API error');
+    Y.list = (j.items || []).map(it => ({ v: it.id.videoId, t: it.snippet.title, a: it.snippet.channelTitle, img: (it.snippet.thumbnails.medium || it.snippet.thumbnails.default || {}).url || '' }));
+    Y.i = -1; ytRender(); if (!Y.list.length) box.innerHTML = '<div class="empty"><b>Tidak ditemukan</b></div>';
+  } catch (e) { box.innerHTML = `<div class="err">Pencarian gagal: ${esc(e.message)}. Periksa kunci API di Pengaturan.</div>`; }
+}
+async function ytPlayAt(i) {
+  const it = Y.list[i]; if (!it) return;
+  au.pause(); Y.i = i; ytRender(); $('#ytNow').hidden = !it.t; $('#ytNow').textContent = it.t || '';
+  try { await ytLoadApi(); } catch (_) { toast('Tidak bisa memuat pemutar YouTube'); return; }
+  const go = () => { if (it.v) Y.player.loadVideoById(it.v); else Y.player.loadPlaylist({ list: it.list, listType: 'playlist' }); };
+  if (Y.player) { go(); return; }
+  Y.player = new YT.Player('ytP', {
+    width: '100%', height: '100%', videoId: it.v || undefined, playerVars: { playsinline: 1, rel: 0, autoplay: 1, origin: /^https?:$/.test(location.protocol) ? location.origin : undefined },
+    events: {
+      onReady: () => { Y.ready = true; if (!it.v) go(); },
+      onStateChange: e => {
+        if (e.data === 1) { au.pause(); try { const d = Y.player.getVideoData(); const cur = Y.list[Y.i]; if (cur && d && d.title && !cur.t) { cur.t = d.title; cur.a = d.author; ST.pref.yt = Y.list.filter(x => x.saved).map(({ saved, ...r }) => r); savePref(); ytRender(); $('#ytNow').hidden = false; $('#ytNow').textContent = d.title; } } catch (_) { } }
+        if (e.data === 0 && Y.list[Y.i] && Y.list[Y.i].v && Y.i < Y.list.length - 1) ytPlayAt(Y.i + 1);
+      },
+      onError: e => { const m = { 2: 'Tautan video tidak valid', 5: 'Pemutar HTML5 bermasalah', 100: 'Video tidak ditemukan', 101: 'Pemilik video melarang diputar di luar YouTube', 150: 'Pemilik video melarang diputar di luar YouTube', 153: 'YouTube menolak karena halaman tidak punya alamat https (Error 153)' }[e.data] || 'Error ' + e.data; toast(m); if (e.data === 101 || e.data === 150) setTimeout(() => { if (Y.i < Y.list.length - 1) ytPlayAt(Y.i + 1); }, 1500); }
+    }
+  });
+}
+
+/* ====== sumber: Spotify (sematan resmi) ====== */
+function spParse(s) {
+  s = (s || '').trim();
+  let m = s.match(/open\.spotify\.com\/(?:intl-[a-z-]+\/)?(track|album|playlist|artist|episode|show)\/([A-Za-z0-9]{22})/) || s.match(/^spotify:(track|album|playlist|artist|episode|show):([A-Za-z0-9]{22})$/);
+  return m ? { type: m[1], id: m[2] } : null;
+}
+const SPT = { track: 'Lagu', album: 'Album', playlist: 'Playlist', artist: 'Artis', episode: 'Episode', show: 'Podcast' };
+function initSpotify() {
+  $('#p-spotify').innerHTML = `<p class="sub">Putar lagu, album, atau playlist Spotify lewat pemutar sematan resmi.</p>
+  <div class="note">Tanpa login Spotify di browser ini, yang terdengar hanya <b>pratinjau 30 detik</b>. Login di Chrome yang sama untuk lagu penuh. Salin tautan dari aplikasi Spotify lewat <b>Bagikan &gt; Salin tautan</b>.</div>
+  <div id="spE"></div>
+  <form class="search" id="sF"><input class="txt" id="sQ" type="url" inputmode="url" placeholder="Tempel tautan Spotify" aria-label="Tautan Spotify"><button class="btn pri">Buka</button></form><div id="sL" class="list"></div>`;
+  $('#sF').onsubmit = e => { e.preventDefault(); const p = spParse($('#sQ').value); if (!p) { toast('Tautan Spotify tidak dikenali'); return; } $('#sQ').value = ''; spOpen(p, true); };
+  $('#sL').onclick = e => { const g = e.target.closest('[data-si]'), d = e.target.closest('[data-sd]'); if (g) spOpen(ST.pref.sp[+g.dataset.si], false); else if (d) { ST.pref.sp.splice(+d.dataset.sd, 1); savePref(); spRender(); } };
+  spRender();
+}
+function spRender() {
+  const box = $('#sL'); if (!box) return;
+  box.innerHTML = ST.pref.sp.length ? '<div class="h2">Tersimpan</div>' + ST.pref.sp.map((x, i) => `<div class="row"><button class="go" data-si="${i}"><span class="art" ${artStyle(x.img)}>${x.img ? '' : IC('sp')}</span><span class="meta"><b>${esc(x.t || SPT[x.type] + ' Spotify')}</b><span>${SPT[x.type]}</span></span></button><button class="more" data-sd="${i}" aria-label="Hapus">${IC('x')}</button></div>`).join('') : '';
+}
+async function spOpen(p, save) {
+  au.pause();
+  const h = p.type === 'track' || p.type === 'episode' ? 152 : 352;
+  $('#spE').innerHTML = `<iframe class="spembed" title="Pemutar Spotify" style="height:${h}px" src="https://open.spotify.com/embed/${p.type}/${p.id}?utm_source=generator" allow="autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture" loading="lazy"></iframe>`;
+  if (save && !ST.pref.sp.some(x => x.id === p.id)) {
+    const rec = { type: p.type, id: p.id, t: '', img: '' }; ST.pref.sp.unshift(rec); ST.pref.sp = ST.pref.sp.slice(0, 40); savePref(); spRender();
+    try { const j = await jget('https://open.spotify.com/oembed?url=' + encodeURIComponent(`https://open.spotify.com/${p.type}/${p.id}`), 8000); rec.t = j.title || ''; rec.img = j.thumbnail_url || ''; savePref(); spRender(); } catch (_) { /* judul opsional */ }
+  }
+}
+
+/* ====== koleksi ====== */
+function initKoleksi() { renderKoleksi(); }
+function renderKoleksi() {
+  const p = $('#p-koleksi'); curList = new Map();
+  const likes = ST.likes, lists = ST.lists, hist = ST.hist;
+  p.innerHTML = `<div class="h2" style="margin-top:6px">Favorit (${likes.length})</div><div id="kF" class="list">${likes.length ? likes.map((t, i) => trackRow(t, likes, i)).join('') : '<div class="empty"><b>Belum ada favorit</b>Ketuk hati di pemutar untuk menyimpan lagu.</div>'}</div>
+  <div class="h2">Daftar putar</div><div id="kL" class="list">${lists.length ? lists.map((l, i) => `<div class="row"><button class="go" data-pl="${i}"><span class="art">${IC('file')}</span><span class="meta"><b>${esc(l.name)}</b><span>${l.items.length} lagu</span></span></button><button class="more" data-pd="${i}" aria-label="Hapus daftar">${IC('x')}</button></div>`).join('') : '<div class="empty">Buat daftar lewat menu titik tiga pada lagu.</div>'}</div>
+  <div class="h2">Terakhir diputar</div><div id="kH" class="list">${hist.length ? hist.slice(0, 15).map((t, i) => trackRow(t, hist, i)).join('') : '<div class="empty">Belum ada riwayat.</div>'}</div>`;
+  bindList($('#kF'), likes); bindList($('#kH'), hist.slice(0, 15));
+  $('#kL').onclick = e => {
+    const g = e.target.closest('[data-pl]'), d = e.target.closest('[data-pd]');
+    if (d) { ST.lists.splice(+d.dataset.pd, 1); saveLists(); renderKoleksi(); }
+    else if (g) { const l = ST.lists[+g.dataset.pl]; openSheet(l.name, l.items.length ? `<button class="btn pri" id="plAll">${IC('play').replace('i-play', 'i-play')} Putar semua</button>` + l.items.map((t, i) => { curList.set(t.k, t); return `<div class="row"><button class="go" data-pi="${i}">${artHtml(t.img)}<span class="meta"><b>${esc(t.t)}</b><span>${esc(t.a || '')}</span></span></button><button class="more" data-pr="${i}" aria-label="Hapus">${IC('x')}</button></div>`; }).join('') : '<div class="empty">Daftar kosong</div>', body => {
+      const all = $('#plAll', body); if (all) all.onclick = () => { popLayerUI(); playList(l.items, 0); };
+      body.onclick = ev => { const a = ev.target.closest('[data-pi]'), r = ev.target.closest('[data-pr]'); if (a) { popLayerUI(); playList(l.items, +a.dataset.pi); } else if (r) { l.items.splice(+r.dataset.pr, 1); saveLists(); popLayerUI(); renderKoleksi(); } };
+    }); }
+  };
+}
+
+/* ====== pengaturan ====== */
+$('#bSet').onclick = () => openSheet('Pengaturan', `
+  <div class="fld"><label for="ytk">Kunci API YouTube Data v3 (opsional)</label><input class="txt" id="ytk" value="${esc(ST.pref.ytKey)}" placeholder="AIza..." autocomplete="off" spellcheck="false" style="flex:none;width:100%"><span class="sub" style="margin:0">Untuk mencari video di tab YouTube. Kunci hanya disimpan di browser ini. Gratis, kuota harian sekitar 100 pencarian.</span></div>
+  <button class="btn pri" id="ytkS">Simpan</button>
+  <div class="note" style="margin:0">Nada hanya memakai sumber resmi: pemutar YouTube dan Spotify bawaan, API Audius, direktori radio komunitas, dan file milikmu sendiri. Nada tidak mengunduh atau memisahkan audio dari YouTube/Spotify.</div>
+  <button class="btn" id="clr">Hapus riwayat</button>`, body => {
+  $('#ytkS', body).onclick = () => { ST.pref.ytKey = $('#ytk', body).value.trim(); savePref(); popLayerUI(); toast('Tersimpan'); initYoutube(); };
+  $('#clr', body).onclick = () => { ST.hist = []; LS.set('hist', []); popLayerUI(); toast('Riwayat dihapus'); renderCur(); };
+});
+$('#bKoleksi').onclick = () => setTab('koleksi');
+
+/* ====== navigasi ====== */
+const TABS = [{ id: 'radio', l: 'Radio', ic: 'radio', init: initRadio }, { id: 'audius', l: 'Audius', ic: 'wave', init: initAudius }, { id: 'youtube', l: 'YouTube', ic: 'vid', init: initYoutube }, { id: 'spotify', l: 'Spotify', ic: 'sp', init: initSpotify }, { id: 'lokal', l: 'Lokal', ic: 'file', init: initLokal }, { id: 'koleksi', l: 'Koleksi', init: initKoleksi }];
+let curTab = ''; const inited = {};
+$('#nav').innerHTML = TABS.filter(t => t.ic).map(t => `<button role="tab" data-t="${t.id}" aria-selected="false">${IC(t.ic)}${t.l}</button>`).join('');
+$('#nav').onclick = e => { const b = e.target.closest('[data-t]'); if (b) setTab(b.dataset.t); };
+function setTab(id) {
+  if (!TABS.some(t => t.id === id)) id = 'radio';
+  if (curTab === 'youtube' && id !== 'youtube') ytPause();
+  curTab = id; if (id !== 'koleksi') { ST.pref.tab = id; savePref(); }
+  $$('.page').forEach(p => p.hidden = p.dataset.tab !== id);
+  $$('#nav [data-t]').forEach(b => b.setAttribute('aria-selected', b.dataset.t === id));
+  $('#bKoleksi').setAttribute('aria-pressed', id === 'koleksi');
+  const t = TABS.find(x => x.id === id); if (!inited[id]) { inited[id] = 1; t.init(); } else if (id === 'koleksi') renderKoleksi();
+  $('#p-' + id).scrollTop = $('#p-' + id).scrollTop;
+}
+syncModes(); setTab(ST.pref.tab); updProg();
+if (!(navigator.mediaSession)) { /* tanpa kontrol layar kunci */ }
+</script>
+</body>
+</html>

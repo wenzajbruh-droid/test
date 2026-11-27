@@ -37,6 +37,7 @@ button.ghost{background:#26262f;color:#ececf1}
 .layer .i{color:#6d6d7a;font-size:12px}
 .muted{color:#8a8a98;font-size:13px;margin:0 16px 14px}
 .empty{padding:28px 16px;text-align:center;color:#8a8a98;font-size:14px}
+.layer.sel{background:#262633;box-shadow:inset 3px 0 0 #00e6ff}
 [hidden]{display:none!important}
 </style>
 </head>
@@ -76,6 +77,7 @@ button.ghost{background:#26262f;color:#ececf1}
 const $ = id => document.getElementById(id);
 let baseName = 'scene';
 let scene = null; // hasil baca XML: { W, H, bg, layers: [...] }
+let selected = -1; // indeks layer yang dipilih (disorot cyan)
 
 // Warna #AARRGGBB jadi rgba() untuk canvas
 function cssColor(argb) {
@@ -165,6 +167,16 @@ function drawScene(skala) {
     ctx.fill(new Path2D(L.d), 'evenodd');
     count++;
   }
+  // Sorot layer yang dipilih dengan garis cyan (sekitar 3 px di kanvas)
+  const S = scene.layers[selected];
+  if (S && S.on) {
+    const cos = Math.cos(S.rot), sin = Math.sin(S.rot);
+    ctx.setTransform(skala * cos * S.sx, skala * sin * S.sx, -skala * sin * S.sy, skala * cos * S.sy, skala * S.lx, skala * S.ly);
+    ctx.globalAlpha = 1;
+    ctx.strokeStyle = '#00e6ff';
+    ctx.lineWidth = 3 / (skala * Math.max(Math.abs(S.sx), 1e-6));
+    ctx.stroke(new Path2D(S.d));
+  }
   ctx.setTransform(1, 0, 0, 1, 0, 0);
   ctx.globalAlpha = 1;
   return count;
@@ -174,9 +186,17 @@ function drawScene(skala) {
 function buildLayerList() {
   const box = $('layers');
   box.innerHTML = '';
+  selected = -1;
   scene.layers.forEach((L, i) => {
-    const row = document.createElement('label');
+    const row = document.createElement('div');
     row.className = 'layer';
+    L.row = row;
+    row.addEventListener('click', e => {
+      if (e.target.tagName === 'INPUT') return;
+      selected = selected === i ? -1 : i;
+      scene.layers.forEach((X, j) => X.row.classList.toggle('sel', j === selected));
+      redraw();
+    });
     const cb = document.createElement('input');
     cb.type = 'checkbox'; cb.checked = L.on;
     cb.addEventListener('change', () => { L.on = cb.checked; row.classList.toggle('off', !L.on); redraw(); });

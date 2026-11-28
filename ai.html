@@ -1,0 +1,47 @@
+<!doctype html>
+<html lang="id">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Menu AI · Test Work</title>
+<link rel="stylesheet" href="styles.css">
+</head>
+<body>
+<div class="wrap">
+  <header class="top"><a class="brand" href="index.html">Test<span>Work</span></a></header>
+  <h1>Menu AI</h1>
+  <p class="lead">Tulis permintaan, lalu AI (Gemini) akan menjawab.</p>
+  <div class="panel">
+    <label for="p">Permintaan</label>
+    <textarea id="p" maxlength="2000" placeholder="Contoh: buat 5 ide nama toko kopi"></textarea>
+    <div class="row" style="margin-top:12px">
+      <button id="go">Kirim</button>
+      <span class="muted" id="st"></span>
+    </div>
+  </div>
+  <div class="panel">
+    <label>Jawaban</label>
+    <div class="out" id="out">Jawaban muncul di sini.</div>
+  </div>
+</div>
+<script>
+const $ = id => document.getElementById(id);
+$('go').addEventListener('click', async () => {
+  const prompt = $('p').value.trim();
+  if (!prompt) { $('st').textContent = 'Tulis dulu permintaannya.'; return; }
+  $('go').disabled = true; $('st').textContent = 'Memproses...';
+  try {
+    const r = await fetch('/api/ai', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ prompt }) });
+    const d = await r.json();
+    if (!r.ok) throw new Error(d.error || 'Gagal.');
+    $('out').textContent = d.text;
+    $('st').textContent = 'Selesai.';
+  } catch (e) {
+    $('st').textContent = 'Gagal: ' + e.message;
+  } finally {
+    $('go').disabled = false;
+  }
+});
+</script>
+</body>
+</html>
